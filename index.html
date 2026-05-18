@@ -137,6 +137,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .stat-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .5s;}
 .stat-bar-val{width:40px;text-align:right;color:var(--muted);font-family:var(--mono);font-size:10px;}
 /* DROPDOWN */
+.dsel-multi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:2px 0;}
+.dsel-multi:focus{border-color:var(--accent);}
+.dsel-multi option{padding:4px 8px;background:var(--surface2);color:var(--text);}
+.dsel-multi option:checked{background:rgba(61,142,240,.25);color:var(--accent);}
+.dsel-hint{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+/* Garder msdrop pour tableau modal */
 .msdrop{position:relative;}
 .msdrop-btn{width:100%;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px;white-space:nowrap;outline:none;}
 .msdrop-btn.sel{border-color:var(--accent);background:rgba(61,142,240,.08);}
@@ -305,28 +311,19 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
       </div>
       <div class="fgrp">
         <div class="flabel">Échelle <span class="flabel-badge">multi</span></div>
-        <div class="msdrop" id="drop-ech-sb">
-          <button class="msdrop-btn" onclick="toggleDrop('drop-ech-sb')"><span id="drop-ech-sb-label">Toutes</span><span class="caret">▼</span></button>
-          <div class="msdrop-panel" id="drop-ech-sb-panel">
-            <div class="msdrop-search"><input type="text" placeholder="Filtrer…" oninput="filterDropItems('drop-ech-sb',this.value)"></div>
-            <div class="msdrop-list" id="drop-ech-sb-list"></div>
-            <div class="msdrop-footer"><span id="drop-ech-sb-count">0 sél.</span><button onclick="clearDrop('drop-ech-sb')">Effacer</button></div>
-          </div>
-        </div>
+        <select class="dsel-multi" id="f-ech" multiple size="4" onchange="filtrer()">
+        </select>
+        <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
       <div class="fgrp">
         <div class="flabel">Cartographe <span class="flabel-badge">multi</span></div>
         <div class="sw" style="margin-bottom:4px">
           <span class="si">🔍</span>
-          <input type="text" id="f-carto-search" placeholder="Rechercher…" oninput="filterDropItems('drop-carto-sb',this.value);openDrop('drop-carto-sb')">
+          <input type="text" id="f-carto-search" placeholder="Rechercher…" oninput="filtrerSelectOptions('f-carto',this.value)">
         </div>
-        <div class="msdrop" id="drop-carto-sb">
-          <button class="msdrop-btn" onclick="toggleDrop('drop-carto-sb')"><span id="drop-carto-sb-label">Tous</span><span class="caret">▼</span></button>
-          <div class="msdrop-panel" id="drop-carto-sb-panel">
-            <div class="msdrop-list" id="drop-carto-sb-list"></div>
-            <div class="msdrop-footer"><span id="drop-carto-sb-count">0 sél.</span><button onclick="clearDrop('drop-carto-sb')">Effacer</button></div>
-          </div>
-        </div>
+        <select class="dsel-multi" id="f-carto" multiple size="4" onchange="filtrer()">
+        </select>
+        <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
     </div>
     <div class="rhead">
@@ -512,16 +509,39 @@ function popup(p){
 
 // ── FILTRES DYNAMIQUES ──
 function majFiltresDyn(){
+  // Pills spécialités
   document.getElementById('p-spe').innerHTML=[...specialites].sort().map(s=>
     '<button class="pill'+(filtresSpe.has(s)?' aa':'')+'" data-spe="'+s.replace(/"/g,'&quot;')+'" onclick="toggleSpe(this)">'+s+'</button>'
   ).join('');
-  initDrop('drop-ech-sb',echelles,()=>filtrer());
-  initDrop('drop-carto-sb',cartographes,()=>filtrer());
+  // Select natifs sidebar
+  majSelect('f-ech', echelles);
+  majSelect('f-carto', cartographes);
+  // Dropdowns tableau modal
   initDrop('drop-spe-mt',specialites,()=>renderTableau());
   initDrop('drop-ech-mt',echelles,()=>renderTableau());
   initDrop('drop-niv-mt',niveaux,()=>renderTableau());
   initDrop('drop-carto-mt',cartographes,()=>renderTableau());
   initDrop('drop-annee-mt',annees,()=>renderTableau(),true);
+}
+
+function majSelect(id, items){
+  const sel = document.getElementById(id);
+  if(!sel) return;
+  const prev = new Set([...sel.selectedOptions].map(o=>o.value));
+  sel.innerHTML = [...items].filter(Boolean).sort().map(v=>{
+    const safe = v.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const sel2 = prev.has(v) ? ' selected' : '';
+    return '<option value="'+safe+'"'+sel2+'>'+v+'</option>';
+  }).join('');
+}
+
+function filtrerSelectOptions(selectId, q){
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+  const lq = q.toLowerCase();
+  [...sel.options].forEach(o=>{
+    o.style.display = (!lq || o.value.toLowerCase().includes(lq)) ? '' : 'none';
+  });
 }
 function toggleSpe(btn){
   const val=btn.getAttribute('data-spe');
@@ -588,6 +608,21 @@ function matchDrop(id,value){
 }
 
 // ── FILTRAGE CARTE ──
+function getSelectedValues(id){
+  const sel=document.getElementById(id);
+  if(!sel) return new Set();
+  return new Set([...sel.selectedOptions].map(o=>o.value));
+}
+
+function matchSelect(id, value){
+  const sel=getSelectedValues(id);
+  if(sel.size===0) return true;
+  if(!value) return false;
+  const vals=value.split(/[,;]/).map(v=>v.trim());
+  for(const s of sel){if(vals.some(v=>v===s))return true;}
+  return false;
+}
+
 function getFiltrees(){
   const q=document.getElementById('search').value.toLowerCase().trim();
   const dept=document.getElementById('f-dept').value;
@@ -597,8 +632,8 @@ function getFiltrees(){
     if(!p.obsolete&&!showAct)return false;
     if(dept&&p._dept!==dept)return false;
     if(filtresSpe.size>0&&!filtresSpe.has(p.specialite))return false;
-    if(!matchDrop('drop-ech-sb',p.echelle))return false;
-    if(!matchDrop('drop-carto-sb',p.cartographes))return false;
+    if(!matchSelect('f-ech',p.echelle))return false;
+    if(!matchSelect('f-carto',p.cartographes))return false;
     if(q){const h=[p.nom,p.commune,p.cartographes,p.numero,p._dept,NDEPT[p._dept],p.annee].filter(Boolean).join(' ').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
@@ -623,7 +658,13 @@ function reset(){
   document.getElementById('f-carto-search').value='';
   filtresSpe.clear();
   document.querySelectorAll('#p-spe .pill').forEach(p=>p.className='pill');
-  clearDrop('drop-ech-sb');clearDrop('drop-carto-sb');
+  // Désélectionner tous les select natifs
+  ['f-ech','f-carto'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel)[...sel.options].forEach(o=>o.selected=false);
+  });
+  // Réafficher options cachées par la recherche
+  filtrerSelectOptions('f-carto','');
   filtrer();
 }
 
