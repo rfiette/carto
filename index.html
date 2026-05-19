@@ -375,8 +375,23 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
         </div>
       </div>
       <div class="fgrp">
-        <div class="flabel">Département</div>
-        <select class="dsel" id="f-dept" onchange="filtrer()"><option value="">Tous</option></select>
+        <div class="flabel">Ligue <span class="flabel-badge">multi</span></div>
+        <div class="msdrop" id="drop-ligue-sb">
+          <button class="msdrop-btn" onclick="toggleDrop('drop-ligue-sb')"><span id="drop-ligue-sb-label">Toutes</span><span class="caret">▼</span></button>
+          <div class="msdrop-panel" id="drop-ligue-sb-panel">
+            <div class="msdrop-list" id="drop-ligue-sb-list"></div>
+            <div class="msdrop-footer"><span id="drop-ligue-sb-count">0 sél.</span><button onclick="clearDrop('drop-ligue-sb')">Effacer</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="fgrp">
+        <div class="flabel">Département <span class="flabel-badge">multi</span></div>
+        <div class="sw" style="margin-bottom:4px">
+          <span class="si">🔍</span>
+          <input type="text" id="f-dept-search" placeholder="Rechercher…" oninput="filtrerSelectOptions('f-dept',this.value)">
+        </div>
+        <select class="dsel-multi" id="f-dept" multiple size="4" onchange="filtrer()"></select>
+        <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
       <div class="fgrp">
         <div class="flabel">Spécialité <span class="flabel-badge">multi</span></div>
