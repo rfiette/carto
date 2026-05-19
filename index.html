@@ -260,7 +260,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title" id="modal-title">Tableau</span>
-      <span id="modal-count" style="font-size:11px;font-family:var(--mono);color:var(--muted)"></span>
+      <span id="modal-count" style="font-size:11px;font-family:var(--mono);color:var(--muted)">Synchronisé avec la carte</span>
       <div class="mtabs">
         <button class="mtab active" id="tab-tableau" onclick="switchTab('tableau')">📊 Tableau</button>
         <button class="mtab" id="tab-stats" onclick="switchTab('stats')">📈 Stats</button>
@@ -825,7 +825,10 @@ function majSelect(id,items){
 function filtrerSelectOptions(selectId,q){
   const sel=document.getElementById(selectId);if(!sel)return;
   const lq=q.toLowerCase();
-  [...sel.options].forEach(o=>{o.style.display=(!lq||o.value.toLowerCase().includes(lq))?'':'none';});
+  [...sel.options].forEach(o=>{
+    const h=(o.value+' '+o.textContent).toLowerCase();
+    o.style.display=(!lq||h.includes(lq))?'':'none';
+  });
 }
 
 function toggleSpe(btn){
@@ -860,6 +863,11 @@ function filtrer(){
   if(geoLayer){const vis=new Set(filtrees.map(f=>f.properties.id_ffco));geoLayer.eachLayer(l=>{const el=l.getElement?.();if(el)el.style.display=vis.has(l.feature?.properties?.id_ffco)?'':'none';});}
   document.getElementById('rcnt').textContent=filtrees.length;
   renderListe();
+  // Si le modal tableau/stats est ouvert, le rafraîchir
+  if(document.getElementById('modal').classList.contains('open')){
+    if(currentTab==='tableau') renderTableau();
+    else renderStats();
+  }
 }
 
 function toggleStatut(type,btn){
@@ -904,6 +912,8 @@ function switchTab(tab){
   document.querySelectorAll('.modal-view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('modal-filters').style.display=tab==='tableau'?'flex':'none';
+  // Mettre à jour le compteur avec les filtrees actuels
+  document.getElementById('modal-count').textContent=(filtrees.length>0?filtrees.length:cartes.length)+' cartes (depuis la carte)';
   if(tab==='tableau')renderTableau(); else renderStats();
 }
 
@@ -913,7 +923,9 @@ function getDataTableau(){
   const dept=document.getElementById('mt-dept').value;
   const statut=document.getElementById('mt-statut').value;
   const poly=document.getElementById('mt-poly').value;
-  return cartes.filter(f=>{
+  // Partir des cartes filtrées sur la carte (sidebar) + filtres propres au tableau
+  const base = filtrees.length > 0 ? filtrees : cartes;
+  return base.filter(f=>{
     const p=f.properties;
     if(statut==='active'&&p.obsolete)return false;
     if(statut==='obsolete'&&!p.obsolete)return false;
@@ -987,7 +999,8 @@ function barChart(data,max,color){
 }
 
 function renderStats(){
-  const data=_tableauData.length>0?_tableauData:cartes;
+  // Utiliser les données du tableau (déjà filtrées) ou les filtrees de la carte
+  const data=_tableauData.length>0?_tableauData:(filtrees.length>0?filtrees:cartes);
   const nbActives=data.filter(f=>!f.properties.obsolete).length;
   const nbObs=data.filter(f=>f.properties.obsolete).length;
   const avecPoly=data.filter(f=>f.geometry).length;
