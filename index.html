@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CartoCO France</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -161,6 +162,77 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .msdrop-item label{cursor:pointer;color:var(--text);}
 .msdrop-footer{padding:5px 10px;border-top:1px solid var(--border);font-size:10px;font-family:var(--mono);color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
 .msdrop-footer button{background:none;border:none;color:var(--accent);font-size:10px;font-family:var(--mono);cursor:pointer;}
+
+/* Courses dans popup */
+.pcourses-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 0 6px;}
+.pcourse{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.pcourse:last-child{border-bottom:none;}
+.pcourse-date{font-size:10px;font-family:var(--mono);color:var(--muted);white-space:nowrap;min-width:72px;padding-top:1px;}
+.pcourse-info{flex:1;min-width:0;}
+.pcourse-nom{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pcourse-type{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);margin-top:2px;}
+.pcourse-link{font-size:10px;color:var(--accent);text-decoration:none;margin-left:6px;opacity:.8;}
+.pcourse-link:hover{opacity:1;}
+.type-pato{background:rgba(240,161,61,.15);color:var(--orange);}
+.type-champ{background:rgba(61,142,240,.15);color:var(--accent);}
+.type-entr{background:rgba(34,211,160,.12);color:var(--green);}
+.type-nat{background:rgba(160,80,240,.15);color:#c084fc;}
+.type-autre{background:rgba(255,255,255,.06);color:var(--muted);}
+.pcourses-empty{font-size:11px;color:var(--muted);font-style:italic;}
+.pcourses-loading{font-size:11px;color:var(--muted);font-style:italic;}
+
+/* ── ADMIN ── */
+.admin-btn{position:fixed;bottom:20px;right:20px;z-index:900;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-family:var(--mono);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.admin-btn:hover{border-color:var(--accent);color:var(--accent);}
+.admin-btn.logged{border-color:var(--green);color:var(--green);}
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:5000;display:none;align-items:center;justify-content:center;}
+.admin-overlay.open{display:flex;}
+.admin-modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:500px;max-width:95vw;overflow:hidden;}
+.admin-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.admin-title{font-size:14px;font-weight:600;flex:1;}
+.admin-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.admin-close:hover{color:var(--text);}
+.admin-body{padding:16px;}
+.admin-carte{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:14px;}
+.admin-carte-nom{font-size:13px;font-weight:600;margin-bottom:3px;}
+.admin-carte-sub{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.afield{margin-bottom:12px;}
+.afield label{display:block;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;}
+.afield input,.afield select{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;font-family:var(--font);}
+.afield input:focus,.afield select:focus{border-color:var(--accent);}
+.afield input::placeholder{color:var(--muted);}
+.admin-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.admin-actions{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--border);}
+.abtn{padding:7px 16px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;border:1px solid var(--border);}
+.abtn-cancel{background:transparent;color:var(--muted);}
+.abtn-cancel:hover{color:var(--text);}
+.abtn-save{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.abtn-save:hover{opacity:.9;}
+.abtn-save:disabled{opacity:.4;cursor:not-allowed;}
+.admin-msg{padding:6px 12px;border-radius:5px;font-size:12px;margin-bottom:10px;display:none;}
+.admin-msg.ok{background:rgba(34,211,160,.15);color:var(--green);border:1px solid var(--green);display:block;}
+.admin-msg.err{background:rgba(240,96,96,.15);color:var(--red);border:1px solid var(--red);display:block;}
+.admin-login{padding:24px 16px;text-align:center;}
+.admin-login p{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.courses-list{margin-top:14px;}
+.courses-list-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;}
+.course-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.course-row:last-child{border-bottom:none;}
+.course-row-date{font-family:var(--mono);color:var(--muted);min-width:80px;}
+.course-row-nom{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.course-row-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;}
+.course-row-del:hover{color:var(--red);}
+
+
+/* Heatmap */
+.heatmap-legend{position:absolute;bottom:80px;left:10px;z-index:800;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:none;min-width:160px;}
+.heatmap-legend.visible{display:block;}
+.heatmap-legend-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;}
+.heatmap-gradient{height:10px;border-radius:4px;background:linear-gradient(to right,#22d3a0,#f0a13d,#f06060);margin-bottom:5px;}
+.heatmap-labels{display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);color:var(--muted);}
+.heatmap-stats{margin-top:8px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;}
+.heatmap-stats span{color:var(--text);font-weight:600;}
+
 </style>
 </head>
 <body>
@@ -177,6 +249,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   <div class="hstat"><div class="dot" style="background:var(--orange)"></div><span id="s-obs">—</span>&nbsp;obsolètes</div>
   <div class="spacer"></div>
   <button class="hbtn" onclick="ouvrirModal('tableau')">📊 Tableau</button>
+  <button class="hbtn" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button>
   <button class="hbtn" onclick="ouvrirModal('stats')">📈 Stats</button>
   <div class="hstat" id="s-load" style="color:var(--accent)">Chargement...</div>
 </header>
@@ -333,6 +406,16 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
     <div class="clist" id="clist"></div>
   </aside>
   <div id="map" style="position:relative">
+    <!-- Légende heatmap -->
+    <div class="heatmap-legend" id="heatmap-legend">
+      <div class="heatmap-legend-title">🔥 Utilisation des cartes</div>
+      <div class="heatmap-gradient"></div>
+      <div class="heatmap-labels"><span>0</span><span id="heatmap-max">?</span></div>
+      <div class="heatmap-stats">
+        <div>Avec courses : <span id="heatmap-nb">—</span></div>
+        <div>Sans course : <span id="heatmap-sans">—</span></div>
+      </div>
+    </div>
     <!-- Sélecteur fonds de carte -->
     <div class="layer-ctrl" id="layer-ctrl">
       <button class="layer-btn active" onclick="setLayer('dark',this)">🌑 Sombre</button>
@@ -467,21 +550,36 @@ function bind(feature,layer){
   layerMap[p.id_ffco]=layer;
   layer.bindTooltip(p.nom||p.id_ffco,{sticky:true});
   layer.on('click',()=>select(p.id_ffco));
-  layer.on('mouseover',()=>{if(activeL!==layer)layer.setStyle(sh(feature));});
-  layer.on('mouseout',()=>{if(activeL!==layer)layer.setStyle(sb(feature));});
+  layer.on('mouseover',()=>{
+    if(heatmapActif) return; // pas de survol en mode heatmap
+    if(activeL!==layer)layer.setStyle(sh(feature));
+  });
+  layer.on('mouseout',()=>{
+    if(heatmapActif) return;
+    if(activeL!==layer)layer.setStyle(sb(feature));
+  });
 }
 function select(id){
-  if(activeL)activeL.setStyle(sb(activeL.feature));
+  if(activeL){
+    if(heatmapActif) appliquerHeatmapLayer(activeL);
+    else activeL.setStyle(sb(activeL.feature));
+  }
   const layer=layerMap[id];if(!layer)return;
-  activeL=layer;layer.setStyle(ss(layer.feature));
-  map.fitBounds(layer.getBounds(),{padding:[40,40]});
+  activeL=layer;
+  if(heatmapActif){
+    // Garder la couleur heatmap, juste épaissir le contour blanc
+    appliquerHeatmapLayer(layer);
+    const currentColor = layer.options.color;
+    layer.setStyle({color:'#ffffff', weight:3, opacity:1,
+      fillColor: currentColor, fillOpacity: layer.options.fillOpacity});
+  } else {
+    layer.setStyle(ss(layer.feature));
+  }
+  // Centrer sur la carte sans changer le zoom
+  map.panTo(layer.getBounds().getCenter());
   layer.openPopup();
   document.querySelectorAll('.citem').forEach(el=>el.classList.toggle('active',el.dataset.id==id));
   document.querySelector('.citem[data-id="'+id+'"]')?.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-function ajouterPopups(){
-  if(!geoLayer)return;
-  geoLayer.eachLayer(l=>{if(l.feature)l.bindPopup(()=>popup(l.feature.properties),{maxWidth:320});});
 }
 
 // ── POPUP ──
@@ -489,86 +587,139 @@ function pRow(lbl,val){return val?'<div><div class="pfl">'+lbl+'</div><div class
 function popup(p){
   const dept=p._dept||'',obs=p.obsolete;
   const mini=MINI_URL+(obs?dept+'_obsoletes':dept)+'/'+p.id_ffco+'.png';
+  const _ckey=p.numero||p.id_ffco;const nbCourses=coursesParCarte[_ckey]?coursesParCarte[_ckey].length:0;
+  const coursesLabel=coursesChargees?('Dernières courses'+(nbCourses>5?' (5/'+nbCourses+')':nbCourses>0?' ('+nbCourses+')':'')):('Dernières courses');
   return '<div class="pi">'
-    +'<img class="pmini" src="'+mini+'" onerror="this.style.display=\'none\'" alt="">'
+    +'<img class="pmini" src="'+mini+'" onerror="this.style.display=\'none\';" alt="">'
     +'<div class="pnom">'+(p.nom||'—')+'</div>'
     +'<div class="ptags">'
-    +'<span class="ptag" style="background:'+(obs?'rgba(240,96,96,.15)':'rgba(34,211,160,.15)')+';color:'+(obs?'var(--red)':'var(--green)')+'\">'+(obs?'Obsolète':'Active')+'</span>'
+    +'<span class="ptag" style="background:'+(obs?'rgba(240,96,96,.15)':'rgba(34,211,160,.15)')+';color:'+(obs?'var(--red)':'var(--green)')+'">'+(obs?'Obsolète':'Active')+'</span>'
     +(dept?'<span class="ptag" style="background:rgba(61,142,240,.12);color:var(--accent)">'+dept+' — '+(NDEPT[dept]||'')+'</span>':'')
     +(p.specialite?'<span class="ptag" style="background:rgba(255,255,255,.06);color:var(--muted)">'+p.specialite+'</span>':'')
     +(p.format?'<span class="ptag" style="background:rgba(255,255,255,.06);color:var(--muted)">'+p.format+'</span>':'')
     +'</div><div class="pdiv"></div>'
-    +'<div class="pgrid">'+pRow('Numéro',p.numero)+pRow('Échelle',p.echelle)+pRow('Surface',p.surface)+pRow('Année',p.annee)+pRow('Commune',p.commune)+pRow('Niveau',p.niveau)+'</div>'
+    +'<div class="pgrid">'
+    +pRow('Numéro',p.numero)+pRow('Échelle',p.echelle)
+    +pRow('Surface',p.surface)+pRow('Année',p.annee)
+    +pRow('Commune',p.commune)+pRow('Niveau',p.niveau)
+    +'</div>'
     +(p.cartographes?'<div style="margin-top:8px">'+pRow('Cartographes',p.cartographes)+'</div>':'')
     +(p.contacts?'<div style="margin-top:4px">'+pRow('Contacts',p.contacts)+'</div>':'')
     +(p.observations?'<div style="margin-top:4px">'+pRow('Observations',p.observations)+'</div>':'')
     +(p.valide?'<div style="margin-top:4px">'+pRow('Validée',p.valide)+'</div>':'')
     +(p.url?'<a class="plink" href="'+p.url+'" target="_blank">↗ Voir sur FFCO</a>':'')
+    +'<div class="pdiv"></div>'
+    +'<div class="pcourses-title">'+coursesLabel+'</div>'
+    +buildCoursesHTML(p.numero||p.id_ffco)
+    +'<button onclick="fermerPopupEtAdmin()" style="display:block;width:100%;margin-top:10px;padding:6px;background:rgba(61,142,240,.1);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-size:11px;cursor:pointer;font-family:var(--mono)">✏️ Saisir une course</button>'
     +'</div>';
 }
 
-// ── FILTRES DYNAMIQUES ──
-function majFiltresDyn(){
-  // Pills spécialités
-  document.getElementById('p-spe').innerHTML=[...specialites].sort().map(s=>
-    '<button class="pill'+(filtresSpe.has(s)?' aa':'')+'" data-spe="'+s.replace(/"/g,'&quot;')+'" onclick="toggleSpe(this)">'+s+'</button>'
+
+function ajouterPopups(){
+  if(!geoLayer)return;
+  geoLayer.eachLayer(l=>{if(l.feature)l.bindPopup(()=>popup(l.feature.properties),{maxWidth:320});});
+}
+
+// ── COURSES (Google Sheets) ──────────────────────────────────────────────────
+const SHEETS_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQhqFcBzhbCxSUpxHoRj_-fBxYtO-iSyrSXf8OMegz23F2ggaWpARJEftWAMCC-LFX6R5vUIF6Uxog5/pub?gid=0&single=true&output=csv";
+let coursesParCarte={},coursesChargees=false;
+
+async function chargerCourses(){
+  try{
+    const r=await fetch(SHEETS_URL);
+    const txt=await r.text();
+    const lines=txt.trim().split('\n');
+    if(lines.length<2)return;
+    const sep=lines[0].includes(';')?';':',';
+    const headers=lines[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+    const idx={id:headers.indexOf('id_carte'),nom:headers.indexOf('nom'),date:headers.indexOf('date'),type:headers.indexOf('type'),dept:headers.indexOf('dept'),lien:headers.indexOf('lien')};
+    if(idx.id===-1){console.warn('Courses: colonne id_carte manquante');return;}
+    const result={};
+    for(let i=1;i<lines.length;i++){
+      const cells=parseCsvLine(lines[i],sep);
+      const id=(cells[idx.id]||'').trim();
+      if(!id)continue;
+      if(!result[id])result[id]=[];
+      result[id].push({nom:(cells[idx.nom]||'').trim(),date:(cells[idx.date]||'').trim(),type:(cells[idx.type]||'').trim(),dept:(cells[idx.dept]||'').trim(),lien:(cells[idx.lien]||'').trim()});
+    }
+    Object.keys(result).forEach(id=>{result[id].sort((a,b)=>b.date.localeCompare(a.date));});
+    coursesParCarte=result;coursesChargees=true;
+    const total=Object.values(result).reduce((s,v)=>s+v.length,0);
+    console.log('Courses chargées:',total,'sur',Object.keys(result).length,'cartes');
+    // Rebinder toutes les popups avec les nouvelles données
+    ajouterPopups();
+    // Rafraîchir la popup ouverte si besoin
+    if(map._popup && activeL){
+      const p = activeL.feature.properties;
+      map._popup.setContent(popup(p));
+    }
+    if(heatmapActif) appliquerHeatmap();
+  }catch(e){console.warn('Courses: erreur',e);}
+}
+
+function parseCsvLine(line,sep){
+  const cells=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===sep&&!inQ){cells.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  cells.push(cur);return cells;
+}
+
+function typeClass(type){
+  const t=(type||'').toLowerCase();
+  if(t.includes('pato')||t.includes('promo'))return 'type-pato';
+  if(t.includes('champ')||t.includes('national')||t.includes('france'))return 'type-champ';
+  if(t.includes('entr'))return 'type-entr';
+  if(t.includes('nat')||t.includes('coupe'))return 'type-nat';
+  return 'type-autre';
+}
+
+function buildCoursesHTML(id_carte){
+  if(!coursesChargees)return '<div class="pcourses-loading">⏳ Chargement des courses…</div>';
+  // Chercher par numero (ex: 2024-D13-1126) ou par id_ffco
+  const courses=coursesParCarte[id_carte];
+  if(!courses||courses.length===0)return '<div class="pcourses-empty">Aucune course enregistrée.</div>';
+  return courses.slice(0,5).map(c=>
+    '<div class="pcourse">'
+    +'<div class="pcourse-date">'+(c.date||'—')+'</div>'
+    +'<div class="pcourse-info">'
+    +'<div class="pcourse-nom">'+(c.nom||'—')+(c.lien?'<a class="pcourse-link" href="'+c.lien+'" target="_blank">↗</a>':'')+'</div>'
+    +'<span class="pcourse-type '+typeClass(c.type)+'">'+(c.type||'—')+'</span>'
+    +'</div></div>'
   ).join('');
-  // Select natifs sidebar
-  majSelect('f-ech', echelles);
-  majSelect('f-carto', cartographes);
-  // Dropdowns tableau modal
-  initDrop('drop-spe-mt',specialites,()=>renderTableau());
-  initDrop('drop-ech-mt',echelles,()=>renderTableau());
-  initDrop('drop-niv-mt',niveaux,()=>renderTableau());
-  initDrop('drop-carto-mt',cartographes,()=>renderTableau());
-  initDrop('drop-annee-mt',annees,()=>renderTableau(),true);
 }
 
-function majSelect(id, items){
-  const sel = document.getElementById(id);
-  if(!sel) return;
-  const prev = new Set([...sel.selectedOptions].map(o=>o.value));
-  sel.innerHTML = [...items].filter(Boolean).sort().map(v=>{
-    const safe = v.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    const sel2 = prev.has(v) ? ' selected' : '';
-    return '<option value="'+safe+'"'+sel2+'>'+v+'</option>';
-  }).join('');
-}
 
-function filtrerSelectOptions(selectId, q){
-  const sel = document.getElementById(selectId);
-  if(!sel) return;
-  const lq = q.toLowerCase();
-  [...sel.options].forEach(o=>{
-    o.style.display = (!lq || o.value.toLowerCase().includes(lq)) ? '' : 'none';
-  });
-}
-function toggleSpe(btn){
-  const val=btn.getAttribute('data-spe');
-  filtresSpe.has(val)?filtresSpe.delete(val):filtresSpe.add(val);
-  document.querySelectorAll('#p-spe .pill').forEach(p=>p.className='pill'+(filtresSpe.has(p.getAttribute('data-spe'))?' aa':''));
-  filtrer();
-}
-
-// ── DROPDOWN ENGINE ──
+// ── DROPDOWN ENGINE ──────────────────────────────────────────────────────────
 const DS={};
 function initDrop(id,items,cb,desc){
-  const prev=DS[id]?new Set(DS[id]):new Set();DS[id]=prev;
+  if(!DS[id])DS[id]=new Set();
   const list=document.getElementById(id+'-list');if(!list)return;
   let sorted=[...items].filter(Boolean).sort();if(desc)sorted=sorted.reverse();
-  list._items=sorted;list._cb=cb;renderDropList(id,'');updateDropLabel(id);
+  list._items=sorted;list._cb=cb;
+  renderDropList(id,'');updateDropLabel(id);
 }
 function renderDropList(id,q){
   const list=document.getElementById(id+'-list');if(!list)return;
   const f=q?list._items.filter(v=>v.toLowerCase().includes(q.toLowerCase())):list._items;
-  list.innerHTML=f.map(v=>{
+  const html=[];
+  f.forEach(v=>{
     const chk=DS[id]&&DS[id].has(v)?'checked':'';
     const safe=v.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    const cbId='cb-'+id+'-'+safe.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_-]/g,'');
-    return '<div class="msdrop-item"><input type="checkbox" id="'+cbId+'" value="'+safe+'" '+chk+' onchange="onDC(\''+id+'\',this)"><label for="'+cbId+'">'+v+'</label></div>';
-  }).join('');
+    const cbId='cb-'+id+'-'+v.length+'_'+Math.abs(v.split('').reduce((a,c)=>a+c.charCodeAt(0),0));
+    html.push('<div class="msdrop-item"><input type="checkbox" id="'+cbId+'" data-dropid="'+id+'" value="'+safe+'" '+chk+' onchange="onDCEvt(this)"><label for="'+cbId+'">'+v+'</label></div>');
+  });
+  list.innerHTML=html.join('');
 }
 function filterDropItems(id,q){renderDropList(id,q);}
+function onDCEvt(cb){
+  const id=cb.getAttribute('data-dropid');
+  onDC(id,cb);
+}
 function onDC(id,cb){
   if(!DS[id])DS[id]=new Set();
   cb.checked?DS[id].add(cb.value):DS[id].delete(cb.value);
@@ -577,7 +728,7 @@ function onDC(id,cb){
 }
 function updateDropLabel(id){
   const n=DS[id]?DS[id].size:0;
-  const defLbl={'drop-ech-sb':'Toutes','drop-carto-sb':'Tous','drop-spe-mt':'Spécialités','drop-ech-mt':'Échelles','drop-niv-mt':'Niveaux','drop-carto-mt':'Cartographes','drop-annee-mt':'Années'}[id]||'Tous';
+  const defLbl={'drop-spe-mt':'Spécialités','drop-ech-mt':'Échelles','drop-niv-mt':'Niveaux','drop-carto-mt':'Cartographes','drop-annee-mt':'Années'}[id]||'Tous';
   const lbl=document.getElementById(id+'-label');if(lbl)lbl.textContent=n?n+' sél.':defLbl;
   const cnt=document.getElementById(id+'-count');if(cnt)cnt.textContent=n+' sél.';
   const btn=document.querySelector('#'+id+'>.msdrop-btn');if(btn)btn.classList.toggle('sel',n>0);
@@ -592,13 +743,6 @@ function toggleDrop(id){
   document.querySelectorAll('.msdrop-panel.open').forEach(p=>{p.classList.remove('open');p.previousElementSibling?.classList.remove('open');});
   if(!wasOpen){panel.classList.add('open');panel.previousElementSibling?.classList.add('open');setTimeout(()=>{const i=panel.querySelector('input[type=text]');if(i)i.focus();},50);}
 }
-function openDrop(id){
-  const panel=document.getElementById(id+'-panel');if(panel&&!panel.classList.contains('open')){panel.classList.add('open');panel.previousElementSibling?.classList.add('open');}
-}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.msdrop')&&!e.target.closest('#f-carto-search'))
-    document.querySelectorAll('.msdrop-panel.open').forEach(p=>{p.classList.remove('open');p.previousElementSibling?.classList.remove('open');});
-});
 function matchDrop(id,value){
   const sel=DS[id];if(!sel||sel.size===0)return true;
   if(!value)return false;
@@ -606,22 +750,49 @@ function matchDrop(id,value){
   for(const s of sel){if(vals.some(v=>v===s))return true;}
   return false;
 }
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.msdrop')&&!e.target.closest('#f-carto-search'))
+    document.querySelectorAll('.msdrop-panel.open').forEach(p=>{p.classList.remove('open');p.previousElementSibling?.classList.remove('open');});
+});
 
-// ── FILTRAGE CARTE ──
-function getSelectedValues(id){
-  const sel=document.getElementById(id);
-  if(!sel) return new Set();
-  return new Set([...sel.selectedOptions].map(o=>o.value));
+// ── FILTRES ──────────────────────────────────────────────────────────────────
+function majFiltresDyn(){
+  document.getElementById('p-spe').innerHTML=[...specialites].sort().map(s=>
+    '<button class="pill'+(filtresSpe.has(s)?' aa':'')+'" data-spe="'+s.replace(/"/g,'&quot;')+'" onclick="toggleSpe(this)">'+s+'</button>'
+  ).join('');
+  majSelect('f-ech',echelles);
+  majSelect('f-carto',cartographes);
+  initDrop('drop-spe-mt',specialites,()=>renderTableau());
+  initDrop('drop-ech-mt',echelles,()=>renderTableau());
+  initDrop('drop-niv-mt',niveaux,()=>renderTableau());
+  initDrop('drop-carto-mt',cartographes,()=>renderTableau());
+  initDrop('drop-annee-mt',annees,()=>renderTableau(),true);
 }
 
-function matchSelect(id, value){
-  const sel=getSelectedValues(id);
-  if(sel.size===0) return true;
-  if(!value) return false;
-  const vals=value.split(/[,;]/).map(v=>v.trim());
-  for(const s of sel){if(vals.some(v=>v===s))return true;}
-  return false;
+function majSelect(id,items){
+  const sel=document.getElementById(id);if(!sel)return;
+  const prev=new Set([...sel.selectedOptions].map(o=>o.value));
+  sel.innerHTML=[...items].filter(Boolean).sort().map(v=>{
+    const safe=v.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<option value="'+safe+'"'+(prev.has(v)?' selected':'')+'>'+v+'</option>';
+  }).join('');
 }
+
+function filtrerSelectOptions(selectId,q){
+  const sel=document.getElementById(selectId);if(!sel)return;
+  const lq=q.toLowerCase();
+  [...sel.options].forEach(o=>{o.style.display=(!lq||o.value.toLowerCase().includes(lq))?'':'none';});
+}
+
+function toggleSpe(btn){
+  const val=btn.getAttribute('data-spe');
+  filtresSpe.has(val)?filtresSpe.delete(val):filtresSpe.add(val);
+  document.querySelectorAll('#p-spe .pill').forEach(p=>p.className='pill'+(filtresSpe.has(p.getAttribute('data-spe'))?' aa':''));
+  filtrer();
+}
+
+function getSelectedValues(id){const sel=document.getElementById(id);if(!sel)return new Set();return new Set([...sel.selectedOptions].map(o=>o.value));}
+function matchSelect(id,value){const sel=getSelectedValues(id);if(sel.size===0)return true;if(!value)return false;const vals=value.split(/[,;]/).map(v=>v.trim());for(const s of sel){if(vals.some(v=>v===s))return true;}return false;}
 
 function getFiltrees(){
   const q=document.getElementById('search').value.toLowerCase().trim();
@@ -638,54 +809,44 @@ function getFiltrees(){
     return true;
   });
 }
+
 function filtrer(){
   filtrees=getFiltrees();
-  if(geoLayer){
-    const vis=new Set(filtrees.map(f=>f.properties.id_ffco));
-    geoLayer.eachLayer(l=>{const el=l.getElement?.();if(el)el.style.display=vis.has(l.feature?.properties?.id_ffco)?'':'none';});
-  }
+  if(geoLayer){const vis=new Set(filtrees.map(f=>f.properties.id_ffco));geoLayer.eachLayer(l=>{const el=l.getElement?.();if(el)el.style.display=vis.has(l.feature?.properties?.id_ffco)?'':'none';});}
   document.getElementById('rcnt').textContent=filtrees.length;
   renderListe();
 }
+
 function toggleStatut(type,btn){
   if(type==='act'){showAct=!showAct;btn.className='pill'+(showAct?' ag':'');}
   else{showObs=!showObs;btn.className='pill'+(showObs?' ao':'');if(showObs&&!obsCharges)chargerObs();}
   filtrer();
 }
+
 function reset(){
   document.getElementById('search').value='';
   document.getElementById('f-dept').value='';
   document.getElementById('f-carto-search').value='';
   filtresSpe.clear();
   document.querySelectorAll('#p-spe .pill').forEach(p=>p.className='pill');
-  // Désélectionner tous les select natifs
-  ['f-ech','f-carto'].forEach(id=>{
-    const sel=document.getElementById(id);
-    if(sel)[...sel.options].forEach(o=>o.selected=false);
-  });
-  // Réafficher options cachées par la recherche
+  ['f-ech','f-carto'].forEach(id=>{const sel=document.getElementById(id);if(sel)[...sel.options].forEach(o=>o.selected=false);});
   filtrerSelectOptions('f-carto','');
   filtrer();
 }
 
-// ── LISTE SIDEBAR ──
 function renderListe(){
   const MAX=200;const list=document.getElementById('clist');
   list.innerHTML=filtrees.slice(0,MAX).map(f=>{
     const p=f.properties;
-    return '<div class="citem'+(p.obsolete?' obs':'')+'\" data-id="'+p.id_ffco+'" onclick="select(\''+p.id_ffco+'\')">'
-      +'<div class="cname">'+(p.nom||p.id_ffco)+'</div>'
-      +'<div class="cmeta">'+(p._dept?'<span class="tag td">'+p._dept+'</span>':'')+(p.obsolete?'<span class="tag to">obs.</span>':'')+(p.echelle?'<span class="tag te">'+p.echelle+'</span>':'')+(p.annee?'<span class="tag te">'+p.annee+'</span>':'')+'</div></div>';
+    return '<div class="citem'+(p.obsolete?' obs':'')+'" data-id="'+p.id_ffco+'" onclick="select(\''+p.id_ffco+'\')">'+
+      '<div class="cname">'+(p.nom||p.id_ffco)+'</div>'+
+      '<div class="cmeta">'+(p._dept?'<span class="tag td">'+p._dept+'</span>':'')+(p.obsolete?'<span class="tag to">obs.</span>':'')+(p.echelle?'<span class="tag te">'+p.echelle+'</span>':'')+(p.annee?'<span class="tag te">'+p.annee+'</span>':'')+'</div></div>';
   }).join('');
   if(filtrees.length>MAX)list.innerHTML+='<div style="padding:10px 12px;font-size:11px;color:var(--muted);font-family:var(--mono)">+'+(filtrees.length-MAX)+' autres</div>';
 }
 
-// ── MODAL ──
-function ouvrirModal(tab){
-  ajouterPopups();
-  document.getElementById('modal').classList.add('open');
-  switchTab(tab||'tableau');
-}
+// ── MODAL ────────────────────────────────────────────────────────────────────
+function ouvrirModal(tab){ajouterPopups();document.getElementById('modal').classList.add('open');switchTab(tab||'tableau');}
 function fermerModal(){document.getElementById('modal').classList.remove('open');}
 function switchTab(tab){
   currentTab=tab;
@@ -694,11 +855,10 @@ function switchTab(tab){
   document.querySelectorAll('.modal-view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('modal-filters').style.display=tab==='tableau'?'flex':'none';
-  if(tab==='tableau')renderTableau();
-  else renderStats();
+  if(tab==='tableau')renderTableau(); else renderStats();
 }
 
-// ── TABLEAU ──
+// ── TABLEAU ──────────────────────────────────────────────────────────────────
 function getDataTableau(){
   const q=document.getElementById('mt-search').value.toLowerCase().trim();
   const dept=document.getElementById('mt-dept').value;
@@ -721,22 +881,20 @@ function getDataTableau(){
     return true;
   });
 }
+
 function sortTableau(col){
   if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}
-  document.querySelectorAll('.dtable th').forEach(th=>{
-    th.className='';
-    if(th.getAttribute('onclick')==="sortTableau('"+col+"')")th.className=sortDir===1?'sort-asc':'sort-desc';
-  });
+  document.querySelectorAll('.dtable th').forEach(th=>{th.className='';if(th.getAttribute('onclick')==="sortTableau('"+col+"')")th.className=sortDir===1?'sort-asc':'sort-desc';});
   renderTableau();
 }
+
 function renderTableau(){
   _tableauData=getDataTableau();
   _tableauData.sort((a,b)=>{
-    const p=sortCol;
-    if(p==='surface_num'){return(a.properties.surface_num-b.properties.surface_num)*sortDir;}
-    if(p==='annee'){return((parseInt(a.properties.annee)||0)-(parseInt(b.properties.annee)||0))*sortDir;}
-    const va=(a.properties[p]||'').toString().toLowerCase();
-    const vb=(b.properties[p]||'').toString().toLowerCase();
+    if(sortCol==='surface_num')return(a.properties.surface_num-b.properties.surface_num)*sortDir;
+    if(sortCol==='annee')return((parseInt(a.properties.annee)||0)-(parseInt(b.properties.annee)||0))*sortDir;
+    const va=(a.properties[sortCol]||'').toString().toLowerCase();
+    const vb=(b.properties[sortCol]||'').toString().toLowerCase();
     return va<vb?-sortDir:va>vb?sortDir:0;
   });
   const MAX=2000,slice=_tableauData.slice(0,MAX);
@@ -761,6 +919,7 @@ function renderTableau(){
       +'</tr>';
   }).join('');
 }
+
 function resetTableau(){
   document.getElementById('mt-search').value='';
   document.getElementById('mt-dept').value='';
@@ -770,17 +929,14 @@ function resetTableau(){
   renderTableau();
 }
 
-// ── STATS ──
+// ── STATS ─────────────────────────────────────────────────────────────────────
 function barChart(data,max,color){
   return data.slice(0,10).map(([lbl,val])=>{
     const pct=max?Math.round(val/max*100):0;
-    return '<div class="stat-bar-row">'
-      +'<div class="stat-bar-label" title="'+lbl+'">'+lbl+'</div>'
-      +'<div class="stat-bar-track"><div class="stat-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
-      +'<div class="stat-bar-val">'+val+'</div>'
-      +'</div>';
+    return '<div class="stat-bar-row"><div class="stat-bar-label" title="'+lbl+'">'+lbl+'</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="stat-bar-val">'+val+'</div></div>';
   }).join('');
 }
+
 function renderStats(){
   const data=_tableauData.length>0?_tableauData:cartes;
   const nbActives=data.filter(f=>!f.properties.obsolete).length;
@@ -790,78 +946,40 @@ function renderStats(){
   const surfTotal=surfaces.reduce((a,b)=>a+b,0);
   const surfMoy=surfaces.length?surfTotal/surfaces.length:0;
   const surfMax=surfaces.length?Math.max(...surfaces):0;
-
-  // Top spécialités
   const cntSpe={};data.forEach(f=>{const s=f.properties.specialite||'Non renseigné';cntSpe[s]=(cntSpe[s]||0)+1;});
   const topSpe=Object.entries(cntSpe).sort((a,b)=>b[1]-a[1]);
-
-  // Top cartographes
-  const cntCarto={};
-  data.forEach(f=>{
-    const c=f.properties.cartographes||'';
-    c.split(/[,;]/).forEach(v=>{const t=v.trim();if(t)cntCarto[t]=(cntCarto[t]||0)+1;});
-  });
+  const cntCarto={};data.forEach(f=>{const c=f.properties.cartographes||'';c.split(/[,;]/).forEach(v=>{const t=v.trim();if(t)cntCarto[t]=(cntCarto[t]||0)+1;});});
   const topCarto=Object.entries(cntCarto).sort((a,b)=>b[1]-a[1]);
-
-  // Top départements
   const cntDept={};data.forEach(f=>{const d=f.properties._dept||'??';cntDept[d]=(cntDept[d]||0)+1;});
-  const topDept=Object.entries(cntDept).sort((a,b)=>b[1]-a[1]).map(([d,n])=>[(d+' '+NDEPT[d]).trim(),n]);
-
-  // Répartition par année
+  const topDept=Object.entries(cntDept).sort((a,b)=>b[1]-a[1]).map(([d,n])=>[(d+' '+(NDEPT[d]||'')).trim(),n]);
   const cntAnnee={};data.forEach(f=>{const a=f.properties.annee;if(a)cntAnnee[a]=(cntAnnee[a]||0)+1;});
   const topAnnee=Object.entries(cntAnnee).sort((a,b)=>b[0]-a[0]);
-
-  // Surfaces > X km²
   const grandesCartes=data.filter(f=>f.properties.surface_num>10).sort((a,b)=>b.properties.surface_num-a.properties.surface_num).slice(0,10);
-
   document.getElementById('stats-content').innerHTML=`
-    <div class="stat-card">
-      <h3>Vue d'ensemble</h3>
-      <div class="stat-big">${data.length.toLocaleString()}</div>
-      <div class="stat-sub">cartes dans la sélection</div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:5px;font-size:12px">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Actives</span><span>${nbActives.toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Obsolètes</span><span>${nbObs.toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Avec polygone</span><span>${avecPoly.toLocaleString()}</span></div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <h3>Surfaces</h3>
-      <div class="stat-big">${surfTotal.toFixed(0)} km²</div>
-      <div class="stat-sub">surface totale cartographiée</div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:5px;font-size:12px">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Moyenne</span><span>${surfMoy.toFixed(2)} km²</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Maximum</span><span>${surfMax.toFixed(2)} km²</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cartes > 10 km²</span><span>${data.filter(f=>f.properties.surface_num>10).length}</span></div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <h3>Top spécialités</h3>
-      ${barChart(topSpe,topSpe[0]?.[1],'var(--accent)')}
-    </div>
-    <div class="stat-card">
-      <h3>Top cartographes (cartes)</h3>
-      ${barChart(topCarto,topCarto[0]?.[1],'var(--green)')}
-    </div>
-    <div class="stat-card">
-      <h3>Top départements</h3>
-      ${barChart(topDept,topDept[0]?.[1],'var(--orange)')}
-    </div>
-    <div class="stat-card">
-      <h3>Dernières années de levé</h3>
-      ${barChart(topAnnee,topAnnee[0]?.[1],'var(--purple)')}
-    </div>
-    <div class="stat-card" style="grid-column:1/-1">
-      <h3>Plus grandes cartes (surface) — top 10</h3>
-      <table style="width:100%;font-size:11px;border-collapse:collapse">
-        <tr style="font-family:var(--mono);font-size:10px;color:var(--muted)"><th style="text-align:left;padding:4px 8px">Nom</th><th>Dept</th><th>Spécialité</th><th>Année</th><th style="text-align:right">Surface</th><th>Statut</th></tr>
-        ${grandesCartes.map(f=>{const p=f.properties;return '<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="fermerModal();select(\''+p.id_ffco+'\')"><td style="padding:5px 8px;font-weight:500">'+(p.nom||'—')+'</td><td style="padding:5px 8px">'+(p._dept||'')+'</td><td style="padding:5px 8px">'+(p.specialite||'—')+'</td><td style="padding:5px 8px;font-family:var(--mono)">'+(p.annee||'—')+'</td><td style="padding:5px 8px;text-align:right;font-family:var(--mono);color:var(--accent)">'+p.surface_num.toFixed(2)+' km²</td><td style="padding:5px 8px">'+(p.obsolete?'<span class="badge-obs">Obs.</span>':'<span class="badge-act">Active</span>')+'</td></tr>';}).join('')}
-      </table>
-    </div>
-  `;
+    <div class="stat-card"><h3>Vue d'ensemble</h3><div class="stat-big">${data.length.toLocaleString()}</div><div class="stat-sub">cartes dans la sélection</div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:5px;font-size:12px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Actives</span><span>${nbActives.toLocaleString()}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Obsolètes</span><span>${nbObs.toLocaleString()}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Avec polygone</span><span>${avecPoly.toLocaleString()}</span></div>
+    </div></div>
+    <div class="stat-card"><h3>Surfaces</h3><div class="stat-big">${surfTotal.toFixed(0)} km²</div><div class="stat-sub">surface totale cartographiée</div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:5px;font-size:12px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Moyenne</span><span>${surfMoy.toFixed(2)} km²</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Maximum</span><span>${surfMax.toFixed(2)} km²</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Cartes > 10 km²</span><span>${data.filter(f=>f.properties.surface_num>10).length}</span></div>
+    </div></div>
+    <div class="stat-card"><h3>Top spécialités</h3>${barChart(topSpe,topSpe[0]?.[1],'var(--accent)')}</div>
+    <div class="stat-card"><h3>Top cartographes</h3>${barChart(topCarto,topCarto[0]?.[1],'var(--green)')}</div>
+    <div class="stat-card"><h3>Top départements</h3>${barChart(topDept,topDept[0]?.[1],'var(--orange)')}</div>
+    <div class="stat-card"><h3>Dernières années</h3>${barChart(topAnnee,topAnnee[0]?.[1],'var(--purple)')}</div>
+    <div class="stat-card" style="grid-column:1/-1"><h3>Plus grandes cartes — top 10</h3>
+    <table style="width:100%;font-size:11px;border-collapse:collapse">
+      <tr style="font-family:var(--mono);font-size:10px;color:var(--muted)"><th style="text-align:left;padding:4px 8px">Nom</th><th>Dept</th><th>Spécialité</th><th>Année</th><th style="text-align:right">Surface</th><th>Statut</th></tr>
+      ${grandesCartes.map(f=>{const p=f.properties;return '<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="fermerModal();select(\''+p.id_ffco+'\')"><td style="padding:5px 8px;font-weight:500">'+(p.nom||'—')+'</td><td style="padding:5px 8px">'+(p._dept||'')+'</td><td style="padding:5px 8px">'+(p.specialite||'—')+'</td><td style="padding:5px 8px;font-family:var(--mono)">'+(p.annee||'—')+'</td><td style="padding:5px 8px;text-align:right;font-family:var(--mono);color:var(--accent)">'+p.surface_num.toFixed(2)+' km²</td><td style="padding:5px 8px">'+(p.obsolete?'<span class="badge-obs">Obs.</span>':'<span class="badge-act">Active</span>')+'</td></tr>';}).join('')}
+    </table></div>`;
 }
 
-// ── EXPORT CSV ──
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
 function exportCSV(){
   const cols=['nom','_dept','specialite','echelle','annee','surface','commune','cartographes','niveau','format','numero','obsolete'];
   const hdrs=['Nom','Dept','Spécialité','Échelle','Année','Surface','Commune','Cartographes','Niveau','Format','Numéro','Statut'];
@@ -870,7 +988,447 @@ function exportCSV(){
 }
 
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))fermerModal();});
+
+// ── ADMIN GOOGLE SHEETS ──────────────────────────────────────────────────────
+const ADMIN_CLIENT_ID = "923093647594-dtnib5m32v6ta443d8mqkbc989pa8sa7.apps.googleusercontent.com";
+const ADMIN_SHEET_ID  = "1W-UqeQ5KQx0gar8FMDCx2i_QmwpoSzCOXbDeLpJByKk";
+const ADMIN_SCOPE     = "https://www.googleapis.com/auth/spreadsheets";
+const ADMIN_RANGE     = "Feuille1!A:F"; // colonnes: id_carte, nom, date, type, dept, lien
+
+let adminToken  = null;
+let adminCarte  = null; // carte sélectionnée pour la saisie
+let tokenClient = null;
+
+function initAdminGoogle(){
+  if(typeof google === 'undefined') return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: ADMIN_CLIENT_ID,
+    scope: ADMIN_SCOPE,
+    callback: (resp) => {
+      if(resp.error) { showAdminMsg('Erreur Google : '+resp.error, 'err'); return; }
+      adminToken = resp.access_token;
+      document.getElementById('admin-btn').classList.add('logged');
+      document.getElementById('admin-icon').textContent = '✏️';
+      document.getElementById('admin-label').textContent = 'Admin ✓';
+      renderAdminForm();
+    }
+  });
+}
+
+// Appeler après chargement GIS
+window.addEventListener('load', ()=>{ setTimeout(initAdminGoogle, 1000); });
+
+function ouvrirAdmin(carteProps){
+  if(carteProps){
+    // Appelé depuis popup : carte déjà connue
+    adminCarte = carteProps;
+    document.getElementById('admin-overlay').classList.add('open');
+    renderAdminForm();
+  } else {
+    // Appelé depuis bouton Admin : mode recherche
+    adminCarte = null;
+    document.getElementById('admin-overlay').classList.add('open');
+    renderAdminSearch();
+  }
+}
+
+function fermerAdmin(){
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+
+
+function renderAdminSearch(){
+  const body = document.getElementById('admin-body');
+  body.innerHTML = `
+    <div class="admin-body">
+      <div class="afield">
+        <label>Rechercher une carte</label>
+        <input type="text" id="admin-search-input" placeholder="Nom, commune, numéro, cartographe…"
+          oninput="filtrerCartesAdmin(this.value)" autocomplete="off">
+      </div>
+      <div id="admin-search-results" style="max-height:320px;overflow-y:auto;margin-top:4px;"></div>
+    </div>
+    <div class="admin-actions">
+      <button class="abtn abtn-cancel" onclick="fermerAdmin()">Fermer</button>
+    </div>`;
+  // Focus automatique
+  setTimeout(()=>document.getElementById('admin-search-input')?.focus(), 100);
+  filtrerCartesAdmin('');
+}
+
+function filtrerCartesAdmin(q){
+  const res = document.getElementById('admin-search-results');
+  if(!res) return;
+  const lq = q.toLowerCase().trim();
+
+  // Chercher dans toutes les cartes chargées
+  const matches = cartes.filter(f => {
+    if(f.properties.obsolete) return false; // ignorer obsolètes par défaut
+    if(!lq) return true;
+    const p = f.properties;
+    const h = [p.nom, p.commune, p.numero, p.cartographes, p._dept, NDEPT[p._dept], p.specialite]
+      .filter(Boolean).join(' ').toLowerCase();
+    return h.includes(lq);
+  }).slice(0, 30);
+
+  if(!matches.length){
+    res.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--muted);font-style:italic">Aucune carte trouvée</div>';
+    return;
+  }
+
+  res.innerHTML = matches.map(f => {
+    const p = f.properties;
+    const nbC = (coursesParCarte[p.numero||p.id_ffco]||[]).length;
+    const badge = nbC > 0
+      ? '<span style="font-size:10px;font-family:var(--mono);background:rgba(34,211,160,.15);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:6px">'+nbC+' course'+(nbC>1?'s':'')+'</span>'
+      : '';
+    return '<div data-id="'+p.id_ffco+'" onclick="selectionnerCarteAdmin(this.getAttribute(\'data-id\'))" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+      + '<div style="font-size:12px;font-weight:500">'+p.nom+badge+'</div>'
+      + '<div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'
+      + (p._dept||'') + ' · ' + (p.echelle||'') + ' · ' + (p.specialite||'') + ' · ' + (p.commune||'')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectionnerCarteAdmin(id_ffco){
+  const feat = cartes.find(f => f.properties.id_ffco == id_ffco);
+  if(!feat) return;
+  adminCarte = feat.properties;
+  renderAdminForm();
+  // Centrer la carte sur le polygone sélectionné
+  const layer = layerMap[id_ffco];
+  if(layer) map.panTo(layer.getBounds().getCenter());
+}
+
+function renderAdminForm(){
+  const body = document.getElementById('admin-body');
+  const p = adminCarte;
+
+  if(!adminToken){
+    body.innerHTML = `
+      <div class="admin-login">
+        <p>Connecte-toi avec ton compte Google pour saisir des courses.</p>
+        <button class="abtn abtn-save" onclick="demanderToken()">🔑 Connexion Google</button>
+      </div>`;
+    return;
+  }
+
+  // Courses existantes pour cette carte
+  const courses = (coursesParCarte[p.numero||p.id_ffco]||[]);
+  const coursesHTML = courses.length ? courses.slice(0,5).map((c,i)=>
+    `<div class="course-row">
+      <span class="course-row-date">${c.date}</span>
+      <span class="course-row-nom" title="${c.nom}">${c.nom}</span>
+      <span class="pcourse-type ${typeClass(c.type)}">${c.type}</span>
+      <button class="course-row-del" onclick="supprimerCourse('${p.numero||p.id_ffco}',${i})" title="Supprimer">✕</button>
+    </div>`
+  ).join('') : '<div style="font-size:12px;color:var(--muted);font-style:italic">Aucune course enregistrée</div>';
+
+  body.innerHTML = `
+    <div class="admin-body">
+      <div id="admin-msg" class="admin-msg"></div>
+      <div class="admin-carte">
+        <div class="admin-carte-nom">${p.nom||'—'}</div>
+        <div class="admin-carte-sub">${p.numero||p.id_ffco} · ${p._dept||''} · ${p.echelle||''}</div>
+      </div>
+
+      <div class="afield">
+        <label>Nom de la course *</label>
+        <input type="text" id="a-nom" placeholder="Ex: PATO BdR printemps 2025">
+      </div>
+      <div class="admin-row">
+        <div class="afield">
+          <label>Date *</label>
+          <input type="date" id="a-date" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="afield">
+          <label>Type</label>
+          <select id="a-type">
+            <option>PATO</option>
+            <option>Championnat</option>
+            <option>Entraînement</option>
+            <option>National</option>
+            <option>Coupe</option>
+            <option>Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="afield">
+        <label>Lien résultats (optionnel)</label>
+        <input type="url" id="a-lien" placeholder="https://orienteering.fr/...">
+      </div>
+
+      ${courses.length ? `<div class="courses-list">
+        <div class="courses-list-title">Courses existantes (${courses.length})</div>
+        ${coursesHTML}
+      </div>` : ''}
+    </div>
+    <div class="admin-actions">
+      <button class="abtn abtn-cancel" onclick="fermerAdmin()">Annuler</button>
+      <button class="abtn abtn-save" id="a-save-btn" onclick="sauvegarderCourse()">💾 Enregistrer</button>
+    </div>`;
+}
+
+function demanderToken(){
+  if(tokenClient) tokenClient.requestAccessToken();
+  else { alert('Google Identity Services pas encore chargé. Réessaie dans 2 secondes.'); }
+}
+
+async function sauvegarderCourse(){
+  const nom  = document.getElementById('a-nom')?.value?.trim();
+  const date = document.getElementById('a-date')?.value?.trim();
+  const type = document.getElementById('a-type')?.value?.trim();
+  const lien = document.getElementById('a-lien')?.value?.trim();
+  const p    = adminCarte;
+
+  if(!nom || !date) { showAdminMsg('Le nom et la date sont obligatoires.', 'err'); return; }
+
+  const btn = document.getElementById('a-save-btn');
+  btn.disabled = true; btn.textContent = '⏳ Enregistrement...';
+
+  const row = [p.numero||p.id_ffco, nom, date, type||'', p._dept||'', lien||''];
+
+  try{
+    const resp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ADMIN_SHEET_ID}/values/${ADMIN_RANGE}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + adminToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values: [row] })
+      }
+    );
+
+    if(!resp.ok){
+      const err = await resp.json();
+      throw new Error(err.error?.message || resp.statusText);
+    }
+
+    showAdminMsg('✓ Course enregistrée !', 'ok');
+    btn.textContent = '✓ Enregistré';
+
+    // Mettre à jour le cache local immédiatement
+    const key = p.numero||p.id_ffco;
+    if(!coursesParCarte[key]) coursesParCarte[key]=[];
+    coursesParCarte[key].unshift({nom, date, type:type||'', dept:p._dept||'', lien:lien||''});
+    coursesParCarte[key].sort((a,b)=>b.date.localeCompare(a.date));
+
+    // Fermer et rafraîchir heatmap si active
+    setTimeout(()=>fermerAdmin(), 800);
+    if(heatmapActif) setTimeout(()=>appliquerHeatmap(), 900);
+
+  }catch(e){
+    showAdminMsg('Erreur : ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = '💾 Enregistrer';
+  }
+}
+
+async function supprimerCourse(idCarte, indexLocal){
+  if(!confirm('Supprimer cette course ?')) return;
+
+  // Trouver la ligne dans le Sheets
+  try{
+    // Lire toutes les valeurs
+    const resp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ADMIN_SHEET_ID}/values/${ADMIN_RANGE}`,
+      { headers: { 'Authorization': 'Bearer ' + adminToken } }
+    );
+    const data = await resp.json();
+    const rows = data.values || [];
+
+    // Trouver la ligne correspondante (header + données)
+    const course = (coursesParCarte[idCarte]||[])[indexLocal];
+    if(!course) return;
+
+    let rowIndex = -1;
+    for(let i=1; i<rows.length; i++){
+      if(rows[i][0]===idCarte && rows[i][1]===course.nom && rows[i][2]===course.date){
+        rowIndex = i+1; // 1-based
+        break;
+      }
+    }
+    if(rowIndex < 0){ alert('Ligne introuvable dans le Sheets.'); return; }
+
+    // Supprimer la ligne via batchUpdate
+    const sheetResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${ADMIN_SHEET_ID}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            deleteDimension: {
+              range: { sheetId: 0, dimension: 'ROWS', startIndex: rowIndex-1, endIndex: rowIndex }
+            }
+          }]
+        })
+      }
+    );
+
+    if(!sheetResp.ok) throw new Error('Erreur suppression');
+
+    // Mettre à jour cache local
+    coursesParCarte[idCarte].splice(indexLocal,1);
+    showAdminMsg('✓ Course supprimée.', 'ok');
+    setTimeout(()=>renderAdminForm(), 800);
+
+  }catch(e){
+    alert('Erreur suppression : '+e.message);
+  }
+}
+
+function showAdminMsg(msg, type){
+  const el = document.getElementById('admin-msg');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'admin-msg ' + type;
+  setTimeout(()=>{ if(el) el.className='admin-msg'; }, 4000);
+}
+
+
+function fermerPopupEtAdmin(){
+  const props = activeL ? activeL.feature.properties : null;
+  map.closePopup();
+  ouvrirAdmin(props);
+}
+
+// ── HEATMAP ──────────────────────────────────────────────────────────────────
+let heatmapActif = false;
+
+function couleurHeatmap(nb, max) {
+  if(max === 0) return '#2a3347';
+  const t = nb / max; // 0 à 1
+  // Dégradé : gris(0) → vert(peu) → orange(moyen) → rouge(beaucoup)
+  if(nb === 0) return '#2a3347'; // gris foncé = aucune course
+  if(t < 0.33) {
+    // vert → jaune
+    const r = Math.round(34  + (240-34)  * (t/0.33));
+    const g = Math.round(211 + (161-211) * (t/0.33));
+    const b = Math.round(160 + (61-160)  * (t/0.33));
+    return `rgb(${r},${g},${b})`;
+  } else if(t < 0.66) {
+    // jaune → orange
+    const u = (t-0.33)/0.33;
+    const r = Math.round(240);
+    const g = Math.round(161 + (96-161) * u);
+    const b = Math.round(61  + (60-61)  * u);
+    return `rgb(${r},${g},${b})`;
+  } else {
+    // orange → rouge vif
+    const u = (t-0.66)/0.34;
+    const r = Math.round(240);
+    const g = Math.round(96  * (1-u*0.5));
+    const b = Math.round(60  * (1-u*0.3));
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+
+function appliquerHeatmapLayer(layer){
+  if(!layer||!layer.feature) return;
+  const p = layer.feature.properties;
+  const key = p.numero||p.id_ffco;
+  const nb = (coursesParCarte[key]||[]).length;
+  const valeurs = Object.values(coursesParCarte).map(v=>v.length).filter(v=>v>0);
+  const max = valeurs.length ? Math.max(...valeurs) : 0;
+  const col = couleurHeatmap(nb, max);
+  layer.setStyle({
+    color: col, fillColor: col,
+    fillOpacity: nb===0 ? 0.05 : 0.35,
+    weight: nb===0 ? 0.5 : 2,
+    opacity: nb===0 ? 0.3 : 0.9
+  });
+}
+
+function toggleHeatmap() {
+  heatmapActif = !heatmapActif;
+  const btn = document.getElementById('btn-heatmap');
+  const legend = document.getElementById('heatmap-legend');
+
+  if(heatmapActif) {
+    btn.classList.add('active');
+    legend.classList.add('visible');
+    appliquerHeatmap();
+  } else {
+    btn.classList.remove('active');
+    legend.classList.remove('visible');
+    // Restaurer les styles normaux
+    if(geoLayer) geoLayer.eachLayer(l => {
+      if(l.feature) l.setStyle(sb(l.feature));
+    });
+  }
+}
+
+function appliquerHeatmap() {
+  if(!geoLayer || !heatmapActif) return;
+
+  // Compter les courses par carte (clé = numero)
+  const comptage = {};
+  Object.entries(coursesParCarte).forEach(([id, courses]) => {
+    comptage[id] = courses.length;
+  });
+
+  const valeurs = Object.values(comptage).filter(v => v > 0);
+  const max = valeurs.length ? Math.max(...valeurs) : 0;
+  const avecCourses = valeurs.length;
+  const sansCourses = cartes.filter(f => !comptage[f.properties.numero||f.properties.id_ffco]).length;
+
+  // Mettre à jour la légende
+  document.getElementById('heatmap-max').textContent = max + ' course' + (max>1?'s':'');
+  document.getElementById('heatmap-nb').textContent = avecCourses;
+  document.getElementById('heatmap-sans').textContent = sansCourses;
+
+  geoLayer.eachLayer(l => {
+    if(!l.feature) return;
+    const p = l.feature.properties;
+    const key = p.numero || p.id_ffco;
+    const nb = comptage[key] || 0;
+    const col = couleurHeatmap(nb, max);
+    l.setStyle({
+      color: col,
+      fillColor: col,
+      fillOpacity: nb === 0 ? 0.08 : 0.40,
+      weight: nb === 0 ? 1 : 2,
+      opacity: nb === 0 ? 0.5 : 1.0
+    });
+  });
+}
+
+// Rafraîchir la heatmap quand les courses sont chargées
+const _origChargerCourses = typeof chargerCourses !== 'undefined' ? chargerCourses : null;
+
+
+// Wrapper pour rafraîchir heatmap après chargement des courses
+const _chargerCoursesOrig = chargerCourses;
+chargerCourses = async function() {
+  await _chargerCoursesOrig();
+  if(heatmapActif) appliquerHeatmap();
+};
+
+chargerCourses();
 init();
 </script>
+
+<!-- BOUTON ADMIN -->
+<button class="admin-btn" id="admin-btn" onclick="ouvrirAdmin()">
+  <span id="admin-icon">🔒</span> <span id="admin-label">Admin</span>
+</button>
+
+<!-- MODAL ADMIN -->
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-modal">
+    <div class="admin-header">
+      <span class="admin-title">✏️ Saisie d'une course</span>
+      <button class="admin-close" onclick="fermerAdmin()">×</button>
+    </div>
+    <div id="admin-body">
+      <!-- Contenu injecté par JS -->
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
