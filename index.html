@@ -271,7 +271,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
     <!-- FILTRES -->
     <div class="modal-filters" id="modal-filters">
       <input class="mfinput" id="mt-search" placeholder="🔍 Recherche…" oninput="renderTableau()">
-      <select class="mfsel" id="mt-dept" onchange="renderTableau()"><option value="">Tous depts</option></select>
+      <div class="msdrop" id="drop-dept-mt">
+        <button class="msdrop-btn" onclick="toggleDrop('drop-dept-mt')" style="font-size:11px;padding:5px 8px;min-width:120px"><span id="drop-dept-mt-label">Tous depts</span><span class="caret">▼</span></button>
+        <div class="msdrop-panel" id="drop-dept-mt-panel">
+          <div class="msdrop-search"><input type="text" placeholder="Rechercher…" oninput="filterDropItems('drop-dept-mt',this.value)"></div>
+          <div class="msdrop-list" id="drop-dept-mt-list"></div>
+          <div class="msdrop-footer"><span id="drop-dept-mt-count">0 sél.</span><button onclick="clearDrop('drop-dept-mt')">Effacer</button></div>
+        </div>
+      </div>
+      <select class="mfsel" id="mt-dept" style="display:none"><option value="">Tous depts</option></select>
       <div class="msdrop" id="drop-spe-mt">
         <button class="msdrop-btn" onclick="toggleDrop('drop-spe-mt')"><span id="drop-spe-mt-label">Spécialités</span><span class="caret">▼</span></button>
         <div class="msdrop-panel" id="drop-spe-mt-panel">
@@ -798,6 +806,7 @@ function majFiltresDyn(){
   majSelect('f-carto',cartographes);
   majSelectDept();
   majLigues();
+  initDrop('drop-dept-mt', new Set(DEPTS.map(d=>d+' — '+(NDEPT[d]||d))), ()=>renderTableau());
   initDrop('drop-spe-mt',specialites,()=>renderTableau());
   initDrop('drop-ech-mt',echelles,()=>renderTableau());
   initDrop('drop-niv-mt',niveaux,()=>renderTableau());
@@ -918,6 +927,11 @@ function appliquerFiltresCarteVersTableau(){
   const deptsSel=selDept?[...selDept.selectedOptions].map(o=>o.value):[];
   const mtDept=document.getElementById('mt-dept');
   if(mtDept) mtDept.value=deptsSel.length===1?deptsSel[0]:'';
+  // Sync vers dropdown multi département tableau
+  if(deptsSel.length>0){
+    DS['drop-dept-mt']=new Set(deptsSel.map(d=>d+' — '+(NDEPT[d]||d)));
+    updateDropLabel('drop-dept-mt');renderDropList('drop-dept-mt','');
+  }
   const mtStatut=document.getElementById('mt-statut');
   if(mtStatut) mtStatut.value=(showAct&&!showObs)?'active':(!showAct&&showObs)?'obsolete':'';
   if(filtresSpe.size>0){DS['drop-spe-mt']=new Set(filtresSpe);updateDropLabel('drop-spe-mt');renderDropList('drop-spe-mt','');}
@@ -938,12 +952,14 @@ function appliquerFiltresTableauVersCarte(){
 
   // Appliquer sur la sidebar
   if(q)      document.getElementById('search').value = q;
-  if(dept){
-    // Sélectionner ce dept dans le select multiple
-    const selDept = document.getElementById('f-dept');
-    if(selDept){
-      [...selDept.options].forEach(o=>{ o.selected = o.value === dept; });
-    }
+  // Sync département tableau → sidebar
+  const deptsMt=DS['drop-dept-mt'];
+  const selDeptSb=document.getElementById('f-dept');
+  if(deptsMt&&deptsMt.size>0&&selDeptSb){
+    const codes=new Set([...deptsMt].map(s=>s.split(' — ')[0]));
+    [...selDeptSb.options].forEach(o=>{o.selected=codes.has(o.value);});
+  } else if(dept&&selDeptSb){
+    [...selDeptSb.options].forEach(o=>{o.selected=o.value===dept;});
   }
   if(statut === 'active'){  showAct=true;  showObs=false; }
   if(statut === 'obsolete'){ showAct=false; showObs=true; }
@@ -989,7 +1005,9 @@ function switchTab(tab){
 // ── TABLEAU ──────────────────────────────────────────────────────────────────
 function getDataTableau(){
   const q=document.getElementById('mt-search').value.toLowerCase().trim();
-  const dept=document.getElementById('mt-dept').value;
+  // Lire les départements depuis le dropdown multi
+  const selDeptMt=DS['drop-dept-mt'];
+  const dept=document.getElementById('mt-dept').value; // gardé pour compatibilité
   const statut=document.getElementById('mt-statut').value;
   const poly=document.getElementById('mt-poly').value;
   // Partir des cartes filtrées sur la carte (sidebar) + filtres propres au tableau
@@ -1000,7 +1018,11 @@ function getDataTableau(){
     if(statut==='obsolete'&&!p.obsolete)return false;
     if(poly==='avec'&&!f.geometry)return false;
     if(poly==='sans'&&f.geometry)return false;
-    if(dept&&p._dept!==dept)return false;
+    // Filtre département multi
+    if(selDeptMt&&selDeptMt.size>0){
+      const deptCodes=new Set([...selDeptMt].map(s=>s.split(' — ')[0]));
+      if(!deptCodes.has(p._dept))return false;
+    } else if(dept&&p._dept!==dept)return false;
     if(!matchDrop('drop-spe-mt',p.specialite))return false;
     if(!matchDrop('drop-ech-mt',p.echelle))return false;
     if(!matchDrop('drop-carto-mt',p.cartographes))return false;
@@ -1055,7 +1077,7 @@ function resetTableau(){
   document.getElementById('mt-dept').value='';
   document.getElementById('mt-statut').value='';
   document.getElementById('mt-poly').value='';
-  ['drop-spe-mt','drop-ech-mt','drop-niv-mt','drop-carto-mt','drop-annee-mt'].forEach(id=>clearDrop(id));
+  ['drop-dept-mt','drop-spe-mt','drop-ech-mt','drop-niv-mt','drop-carto-mt','drop-annee-mt'].forEach(id=>clearDrop(id));
   renderTableau();
 }
 
