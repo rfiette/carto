@@ -922,22 +922,26 @@ function ouvrirModal(tab){
 }
 
 function appliquerFiltresCarteVersTableau(){
-  document.getElementById('mt-search').value=document.getElementById('search').value.trim();
+  const q=document.getElementById('search').value.trim();
+  if(q) document.getElementById('mt-search').value=q;
   const selDept=document.getElementById('f-dept');
   const deptsSel=selDept?[...selDept.selectedOptions].map(o=>o.value):[];
-  const mtDept=document.getElementById('mt-dept');
-  if(mtDept) mtDept.value=deptsSel.length===1?deptsSel[0]:'';
-  // Sync vers dropdown multi département tableau
   if(deptsSel.length>0){
+    const mtDept=document.getElementById('mt-dept');
+    if(mtDept&&deptsSel.length===1) mtDept.value=deptsSel[0];
     DS['drop-dept-mt']=new Set(deptsSel.map(d=>d+' — '+(NDEPT[d]||d)));
     updateDropLabel('drop-dept-mt');renderDropList('drop-dept-mt','');
   }
   const mtStatut=document.getElementById('mt-statut');
-  if(mtStatut) mtStatut.value=(showAct&&!showObs)?'active':(!showAct&&showObs)?'obsolete':'';
+  if(mtStatut){
+    if(showAct&&!showObs) mtStatut.value='active';
+    else if(!showAct&&showObs) mtStatut.value='obsolete';
+  }
   if(filtresSpe.size>0){DS['drop-spe-mt']=new Set(filtresSpe);updateDropLabel('drop-spe-mt');renderDropList('drop-spe-mt','');}
   const se=DS['drop-ech-sb'];if(se&&se.size>0){DS['drop-ech-mt']=new Set(se);updateDropLabel('drop-ech-mt');renderDropList('drop-ech-mt','');}
   const sc=DS['drop-carto-sb'];if(sc&&sc.size>0){DS['drop-carto-mt']=new Set(sc);updateDropLabel('drop-carto-mt');renderDropList('drop-carto-mt','');}
 }
+
 function fermerModal(){
   document.getElementById('modal').classList.remove('open');
   // Appliquer les filtres tableau à la carte
