@@ -228,7 +228,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .heatmap-legend{position:absolute;bottom:80px;left:10px;z-index:800;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:none;min-width:160px;}
 .heatmap-legend.visible{display:block;}
 .heatmap-legend-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;}
-.heatmap-gradient{height:10px;border-radius:4px;background:linear-gradient(to right,#22d3a0,#f0a13d,#f06060);margin-bottom:5px;}
+.heatmap-gradient{height:10px;border-radius:4px;background:linear-gradient(to right,#ffffff,#22d3a0,#f0a13d,#f06060);margin-bottom:5px;}
 .heatmap-labels{display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);color:var(--muted);}
 .heatmap-stats{margin-top:8px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;}
 .heatmap-stats span{color:var(--text);font-weight:600;}
@@ -271,6 +271,13 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
     <!-- FILTRES -->
     <div class="modal-filters" id="modal-filters">
       <input class="mfinput" id="mt-search" placeholder="🔍 Recherche…" oninput="renderTableau()">
+      <div class="msdrop" id="drop-ligue-mt">
+        <button class="msdrop-btn" onclick="toggleDrop('drop-ligue-mt')" style="font-size:11px;padding:5px 8px;min-width:100px"><span id="drop-ligue-mt-label">Ligues</span><span class="caret">▼</span></button>
+        <div class="msdrop-panel" id="drop-ligue-mt-panel">
+          <div class="msdrop-list" id="drop-ligue-mt-list"></div>
+          <div class="msdrop-footer"><span id="drop-ligue-mt-count">0 sél.</span><button onclick="clearDrop('drop-ligue-mt')">Effacer</button></div>
+        </div>
+      </div>
       <div class="msdrop" id="drop-dept-mt">
         <button class="msdrop-btn" onclick="toggleDrop('drop-dept-mt')" style="font-size:11px;padding:5px 8px;min-width:120px"><span id="drop-dept-mt-label">Tous depts</span><span class="caret">▼</span></button>
         <div class="msdrop-panel" id="drop-dept-mt-panel">
@@ -433,7 +440,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
     <div class="heatmap-legend" id="heatmap-legend">
       <div class="heatmap-legend-title">🔥 Utilisation des cartes</div>
       <div class="heatmap-gradient"></div>
-      <div class="heatmap-labels"><span>0</span><span id="heatmap-max">?</span></div>
+      <div class="heatmap-labels"><span style="color:#fff">0</span><span id="heatmap-max">?</span></div>
       <div class="heatmap-stats">
         <div>Avec courses : <span id="heatmap-nb">—</span></div>
         <div>Sans course : <span id="heatmap-sans">—</span></div>
@@ -806,6 +813,7 @@ function majFiltresDyn(){
   majSelect('f-carto',cartographes);
   majSelectDept();
   majLigues();
+  initDrop('drop-ligue-mt', new Set(Object.entries(LIGUES).map(([c,l])=>c+' — '+l.nom)), ()=>renderTableau());
   initDrop('drop-dept-mt', new Set(DEPTS.map(d=>d+' — '+(NDEPT[d]||d))), ()=>renderTableau());
   initDrop('drop-spe-mt',specialites,()=>renderTableau());
   initDrop('drop-ech-mt',echelles,()=>renderTableau());
@@ -961,6 +969,14 @@ function appliquerFiltresTableauVersCarte(){
 
   // Appliquer sur la sidebar
   if(q)      document.getElementById('search').value = q;
+  // Sync ligue tableau → sidebar
+  const ligueMt=DS['drop-ligue-mt'];
+  if(ligueMt&&ligueMt.size>0){
+    DS['drop-ligue-sb']=new Set(ligueMt);
+    updateDropLabel('drop-ligue-sb');renderDropList('drop-ligue-sb','');
+  } else {
+    clearDrop('drop-ligue-sb');
+  }
   // Sync département tableau → sidebar
   const deptsMt=DS['drop-dept-mt'];
   const selDeptSb=document.getElementById('f-dept');
@@ -1019,14 +1035,34 @@ function getDataTableau(){
   const dept=document.getElementById('mt-dept').value; // gardé pour compatibilité
   const statut=document.getElementById('mt-statut').value;
   const poly=document.getElementById('mt-poly').value;
-  // Partir des cartes filtrées sur la carte (sidebar) + filtres propres au tableau
-  const base = filtrees.length > 0 ? filtrees : cartes;
-  return base.filter(f=>{
+  // Partir de TOUTES les cartes (inclut sans polygone) + appliquer filtres sidebar + filtres tableau
+  return cartes.filter(f=>{
     const p=f.properties;
     if(statut==='active'&&p.obsolete)return false;
     if(statut==='obsolete'&&!p.obsolete)return false;
+    // Si pas de filtre statut dans le tableau, appliquer celui de la sidebar
+    if(!statut){
+      if(p.obsolete&&!showObs)return false;
+      if(!p.obsolete&&!showAct)return false;
+    }
     if(poly==='avec'&&!f.geometry)return false;
     if(poly==='sans'&&f.geometry)return false;
+    // Filtre sidebar recherche texte (si pas de recherche tableau)
+    if(!q){
+      const qs=document.getElementById('search').value.toLowerCase().trim();
+      if(qs){
+        const h=[p.nom,p.commune,p.cartographes,p.numero,p._dept,NDEPT[p._dept],p.annee].filter(Boolean).join(' ').toLowerCase();
+        if(!h.includes(qs))return false;
+      }
+    }
+    // Filtre ligue tableau
+    const selLigueMt=DS['drop-ligue-mt'];
+    if(selLigueMt&&selLigueMt.size>0){
+      const ld=DEPT_LIGUE[p._dept]||[];
+      let ok=false;
+      for(const s of selLigueMt){const code=s.split(' — ')[0];if(ld.includes(code)){ok=true;break;}}
+      if(!ok)return false;
+    }
     // Filtre département multi
     if(selDeptMt&&selDeptMt.size>0){
       const deptCodes=new Set([...selDeptMt].map(s=>s.split(' — ')[0]));
@@ -1086,7 +1122,7 @@ function resetTableau(){
   document.getElementById('mt-dept').value='';
   document.getElementById('mt-statut').value='';
   document.getElementById('mt-poly').value='';
-  ['drop-dept-mt','drop-spe-mt','drop-ech-mt','drop-niv-mt','drop-carto-mt','drop-annee-mt'].forEach(id=>clearDrop(id));
+  ['drop-ligue-mt','drop-dept-mt','drop-spe-mt','drop-ech-mt','drop-niv-mt','drop-carto-mt','drop-annee-mt'].forEach(id=>clearDrop(id));
   renderTableau();
 }
 
@@ -1557,11 +1593,12 @@ function appliquerHeatmap() {
     const nb = comptage[key] || 0;
     const col = couleurHeatmap(nb, max);
     l.setStyle({
-      color: col,
-      fillColor: col,
-      fillOpacity: nb === 0 ? 0.08 : 0.40,
-      weight: nb === 0 ? 1 : 2,
-      opacity: nb === 0 ? 0.5 : 1.0
+      color:       nb === 0 ? '#ffffff' : col,
+      fillColor:   nb === 0 ? '#ffffff' : col,
+      fillOpacity: nb === 0 ? 0.12 : 0.40,
+      weight:      nb === 0 ? 1   : 2,
+      opacity:     nb === 0 ? 0.5 : 1.0,
+      dashArray:   nb === 0 ? '4 3' : null
     });
   });
 }
