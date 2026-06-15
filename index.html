@@ -1132,11 +1132,7 @@ function getDataTableau(){
     const p=f.properties;
     if(statut==='active'&&p.obsolete)return false;
     if(statut==='obsolete'&&!p.obsolete)return false;
-    // Si pas de filtre statut dans le tableau, appliquer celui de la sidebar
-    if(!statut){
-      if(p.obsolete&&!showObs)return false;
-      if(!p.obsolete&&!showAct)return false;
-    }
+    // "Act. + Obs." (statut vide) → tout afficher, sans tenir compte de la sidebar
     if(poly==='avec'&&!f.geometry)return false;
     if(poly==='sans'&&f.geometry)return false;
     // Filtre sidebar recherche texte (si pas de recherche tableau)
