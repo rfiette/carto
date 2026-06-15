@@ -79,7 +79,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .leaflet-popup-close-button{color:var(--muted)!important;top:10px!important;right:12px!important;font-size:18px!important;}
 .leaflet-popup-close-button:hover{color:var(--text)!important;}
 .pi{padding:14px;max-width:320px;}
-.pmini{width:100%;max-height:110px;object-fit:cover;border-radius:5px;margin-bottom:10px;border:1px solid var(--border);}
+.pmini{display:block;width:100%;height:auto;border-radius:5px;margin-bottom:10px;border:1px solid var(--border);}
 .pnom{font-size:14px;font-weight:600;margin-bottom:7px;padding-right:20px;color:var(--text);}
 .ptags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
 .ptag{padding:2px 7px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
@@ -224,6 +224,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .course-row-del:hover{color:var(--red);}
 
 
+/* Miniature tooltip tableau */
+#mini-tooltip{position:fixed;z-index:9999;pointer-events:none;display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px;box-shadow:0 6px 24px rgba(0,0,0,.7);}
+#mini-tooltip img{display:block;max-width:280px;max-height:280px;width:auto;height:auto;border-radius:5px;}
+
 /* Heatmap */
 .heatmap-legend{position:absolute;bottom:80px;left:10px;z-index:800;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:none;min-width:160px;}
 .heatmap-legend.visible{display:block;}
@@ -248,7 +252,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   <div class="hstat"><div class="dot" style="background:var(--green)"></div><span id="s-act">—</span>&nbsp;actives</div>
   <div class="hstat"><div class="dot" style="background:var(--orange)"></div><span id="s-obs">—</span>&nbsp;obsolètes</div>
   <div class="spacer"></div>
-  <button class="hbtn" onclick="ouvrirModal('tableau')">📊 Tableau</button>
+  <button class="hbtn" onclick="ouvrirModal('tableau')">📊 Tableau cartes</button>
+  <button class="hbtn" onclick="ouvrirModal('courses')">🏃 Tableau courses</button>
   <button class="hbtn" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button>
   <button class="hbtn" onclick="ouvrirModal('stats')">📈 Stats</button>
   <div class="hstat" id="s-load" style="color:var(--accent)">Chargement...</div>
@@ -262,7 +267,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
       <span class="modal-title" id="modal-title">Tableau</span>
       <span id="modal-count" style="font-size:11px;font-family:var(--mono);color:var(--muted)">Synchronisé avec la carte</span>
       <div class="mtabs">
-        <button class="mtab active" id="tab-tableau" onclick="switchTab('tableau')">📊 Tableau</button>
+        <button class="mtab active" id="tab-tableau" onclick="switchTab('tableau')">📊 Tableau des cartes</button>
+        <button class="mtab" id="tab-courses" onclick="switchTab('courses')">🏃 Tableau des courses</button>
         <button class="mtab" id="tab-stats" onclick="switchTab('stats')">📈 Stats</button>
       </div>
       <button class="modal-close" onclick="fermerModal()">×</button>
@@ -340,6 +346,18 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
       <button class="mfsel" onclick="resetTableau()" style="cursor:pointer;color:var(--muted)">✕ Reset</button>
     </div>
 
+    <!-- FILTRES COURSES -->
+    <div class="modal-filters" id="courses-filters" style="display:none">
+      <input class="mfinput" id="ct-search" placeholder="🔍 Recherche…" oninput="renderCoursesTab()">
+      <select class="mfsel" id="ct-type" onchange="renderCoursesTab()">
+        <option value="">Tous types</option>
+      </select>
+      <select class="mfsel" id="ct-annee" onchange="renderCoursesTab()">
+        <option value="">Toutes années</option>
+      </select>
+      <button class="mfsel" onclick="resetCoursesTab()" style="cursor:pointer;color:var(--muted)">✕ Reset</button>
+    </div>
+
     <div class="modal-body">
       <!-- Vue tableau -->
       <div class="modal-view active" id="view-tableau">
@@ -359,6 +377,19 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
             <th onclick="sortTableau('obsolete')">Statut</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <!-- Vue courses -->
+      <div class="modal-view" id="view-courses">
+        <table class="dtable">
+          <thead><tr>
+            <th onclick="sortCourses('date')">Date</th>
+            <th onclick="sortCourses('nom')">Nom de la course</th>
+            <th onclick="sortCourses('type')">Type</th>
+            <th onclick="sortCourses('carte_nom')">Carte</th>
+            <th onclick="sortCourses('carte_dept')">Dept</th>
+          </tr></thead>
+          <tbody id="tbody-courses"></tbody>
         </table>
       </div>
       <!-- Vue stats -->
@@ -450,13 +481,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
     <div class="layer-ctrl" id="layer-ctrl">
       <button class="layer-btn active" onclick="setLayer('dark',this)">🌑 Sombre</button>
       <button class="layer-btn" onclick="setLayer('osm',this)">🗺 OSM</button>
-      <button class="layer-btn" onclick="setLayer('ign',this)">📍 IGN Topo</button>
       <button class="layer-btn" onclick="setLayer('aerial',this)">🛰 Aérien</button>
-      <button class="layer-btn" onclick="setLayer('ign-ortho',this)">🌿 IGN Ortho</button>
     </div>
   </div>
 </div>
 
+<div id="mini-tooltip"><img id="mini-tooltip-img" src="" alt=""></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const DATA_URL="./data/",MINI_URL="./miniatures/";
@@ -465,12 +495,29 @@ const NDEPT={"01":"Ain","02":"Aisne","03":"Allier","04":"Alpes-de-Hte-Pr.","05":
 
 
 // ── LIGUES ───────────────────────────────────────────────────────────────────
-const LIGUES = {"ALS": {"nom": "Alsace", "depts": ["67", "68"]}, "AQU": {"nom": "Aquitaine", "depts": ["24", "33", "40", "47", "64"]}, "AUV": {"nom": "Auvergne", "depts": ["03", "15", "43", "63"]}, "BOU": {"nom": "Bourgogne", "depts": ["21", "58", "71", "89"]}, "BRE": {"nom": "Bretagne", "depts": ["22", "29", "35", "56"]}, "CEN": {"nom": "Centre", "depts": ["18", "28", "36", "37", "41", "45"]}, "CHA": {"nom": "Champagne-Ardenne", "depts": ["08", "10", "51", "52"]}, "COR": {"nom": "Corse", "depts": ["20"]}, "FCA": {"nom": "Franche-Comté", "depts": ["25", "39", "70", "90"]}, "IDF": {"nom": "Île-de-France", "depts": ["75", "77", "78", "91", "92", "93", "94", "95"]}, "LAN": {"nom": "Languedoc-Roussillon", "depts": ["11", "30", "34", "48", "66"]}, "LIM": {"nom": "Limousin", "depts": ["19", "23", "87"]}, "LOR": {"nom": "Lorraine", "depts": ["54", "55", "57", "88"]}, "MIP": {"nom": "Midi-Pyrénées", "depts": ["09", "12", "31", "32", "46", "65", "81", "82"]}, "NOR": {"nom": "Normandie", "depts": ["14", "27", "50", "61", "76"]}, "NPC": {"nom": "Nord-Pas-de-Calais", "depts": ["59", "62"]}, "PAC": {"nom": "PACA", "depts": ["04", "05", "06", "13", "83", "84"]}, "PAL": {"nom": "Pays de la Loire", "depts": ["44", "49", "53", "72", "85"]}, "PIC": {"nom": "Picardie", "depts": ["02", "60", "80"]}, "POI": {"nom": "Poitou-Charentes", "depts": ["16", "17", "79", "86"]}, "RHA": {"nom": "Rhône-Alpes", "depts": ["01", "07", "26", "38", "42", "69", "73", "74"]}, "DOM": {"nom": "DOM-TOM", "depts": ["97", "98"]}};
+const LIGUES = {
+  "AR": {"nom": "Auvergne-Rhône-Alpes", "depts": ["01","03","07","15","26","38","42","43","63","69","73","74"]},
+  "BF": {"nom": "Bourgogne-Franche-Comté", "depts": ["21","25","39","58","70","71","89","90"]},
+  "BR": {"nom": "Bretagne", "depts": ["22","29","35","56"]},
+  "CE": {"nom": "Centre-Val de Loire", "depts": ["18","28","36","37","41","45"]},
+  "CO": {"nom": "Corse", "depts": ["20"]},
+  "GE": {"nom": "Grand Est", "depts": ["08","10","51","52","54","55","57","67","68","88"]},
+  "HF": {"nom": "Hauts-de-France", "depts": ["02","59","60","62","80"]},
+  "IF": {"nom": "Île de France", "depts": ["75","77","78","91","92","93","94","95"]},
+  "NA": {"nom": "Nouvelle-Aquitaine", "depts": ["16","17","19","23","24","33","40","47","64","79","86","87"]},
+  "NC": {"nom": "Calédonienne", "depts": ["98"]},
+  "NM": {"nom": "Normandie", "depts": ["14","27","50","61","76"]},
+  "OC": {"nom": "Occitanie", "depts": ["09","11","12","30","31","32","34","46","48","65","66","81","82"]},
+  "OM": {"nom": "Outre Mer", "depts": ["97"]},
+  "PL": {"nom": "Pays de la Loire", "depts": ["44","49","53","72","85"]},
+  "PZ": {"nom": "Provence-Alpes-Côte d'Azur", "depts": ["04","05","06","13","83","84"]}
+};
 const DEPT_LIGUE = {};
 Object.entries(LIGUES).forEach(([code,l])=>{l.depts.forEach(d=>{if(!DEPT_LIGUE[d])DEPT_LIGUE[d]=[];DEPT_LIGUE[d].push(code);});});
 
 function majLigues(){
   const items=[...new Set(Object.entries(LIGUES).map(([code,l])=>code+' — '+l.nom))].sort();
+  items.push('AU — Autres');
   initDrop('drop-ligue-sb',items,()=>filtrer());
   updateDropLabel('drop-ligue-sb');
 }
@@ -479,7 +526,11 @@ function matchLigue(dept){
   const sel=DS['drop-ligue-sb'];
   if(!sel||sel.size===0)return true;
   const ld=DEPT_LIGUE[dept]||[];
-  for(const s of sel){const code=s.split(' — ')[0];if(ld.includes(code))return true;}
+  for(const s of sel){
+    const code=s.split(' — ')[0];
+    if(code==='AU'){if(ld.length===0)return true;}
+    else if(ld.includes(code))return true;
+  }
   return false;
 }
 
@@ -494,12 +545,12 @@ let _tableauData=[];
 
 // ── FONDS DE CARTE ──
 const LAYERS={
-  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',subdomains:'abcd',maxZoom:19}),
-  osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
-  ign:  L.tileLayer('https://wxs.ign.fr/essentiels/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png&STYLE=normal',{attribution:'© IGN',maxZoom:19}),
+  dark:   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',subdomains:'abcd',maxZoom:19}),
+  osm:    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
   aerial: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}),
-  'ign-ortho': L.tileLayer('https://wxs.ign.fr/essentiels/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal',{attribution:'© IGN',maxZoom:20})
 };
+// Overlay noms de villes (langue locale = français en France) — utilisé sur dark et aerial
+const cityLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19,opacity:0.9});
 let currentBaseLayer=LAYERS.dark;
 
 const map=L.map('map',{zoomControl:false}).setView([46.5,2.5],6);
@@ -512,9 +563,11 @@ document.getElementById('layer-ctrl').style.position='absolute';
 
 function setLayer(name,btn){
   map.removeLayer(currentBaseLayer);
+  if(map.hasLayer(cityLabels))map.removeLayer(cityLabels);
   currentBaseLayer=LAYERS[name];
   currentBaseLayer.addTo(map);
   currentBaseLayer.bringToBack();
+  if(name==='aerial'){cityLabels.addTo(map);}
   if(geoLayer)geoLayer.bringToFront();
   document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -559,17 +612,38 @@ async function chargerDept(dept){
     return data.features.length;
   }catch(e){return 0;}
 }
+let obsLoading=false;
+async function chargerObsDept(dept){
+  try{
+    const r=await fetch(DATA_URL+dept+'_obsoletes.geojson');
+    if(!r.ok)return 0;
+    const data=await r.json();
+    data.features.forEach(f=>{f.properties._dept=dept;f.properties.obsolete=true;cartes.push(f);indexFeature(f);});
+    ajouterLayers(data.features);
+    return data.features.length;
+  }catch(e){return 0;}
+}
 async function chargerObs(){
-  if(obsCharges)return;obsCharges=true;
+  if(obsCharges||obsLoading)return;
+  obsLoading=true;
   try{
     setLoad(undefined,'Obsolètes...');
-    const r=await fetch(DATA_URL+'obsoletes.geojson');
-    if(!r.ok)return;
-    const data=await r.json();
-    data.features.forEach(f=>{f.properties._dept=getDept(f.properties);f.properties.obsolete=true;cartes.push(f);indexFeature(f);});
-    document.getElementById('s-obs').textContent=data.features.length;
-    ajouterLayers(data.features);ajouterPopups();majFiltresDyn();filtrer();setLoad(100,'');
-  }catch(e){setLoad(100,'');}
+    let total=0;const BATCH=8;
+    for(let i=0;i<DEPTS.length;i+=BATCH){
+      const batch=DEPTS.slice(i,i+BATCH);
+      const res=await Promise.all(batch.map(d=>chargerObsDept(d)));
+      res.forEach(n=>{total+=n;});
+      setLoad(undefined,batch[batch.length-1]+'...(obs)');
+      ajouterPopups();majFiltresDyn();filtrer();
+    }
+    document.getElementById('s-obs').textContent=total;
+    setLoad(100,'');
+    obsCharges=true;
+  }catch(e){
+    setLoad(100,'');
+    console.warn('Erreur chargement obsolètes:',e);
+  }
+  obsLoading=false;
 }
 async function init(){
   DEPTS.forEach(d=>{
@@ -586,6 +660,8 @@ async function init(){
   }
   document.getElementById('s-act').textContent=total;
   setLoad(100,'');document.getElementById('s-load').textContent='';
+  // Charger les obsolètes en arrière-plan après les actives
+  chargerObs();
 }
 
 // ── LAYERS ──
@@ -607,6 +683,11 @@ function bind(feature,layer){
     if(heatmapActif) return;
     if(activeL!==layer)layer.setStyle(sb(feature));
   });
+}
+function selectZoom(id){
+  select(id);
+  const layer=layerMap[id];
+  if(layer) map.fitBounds(layer.getBounds(),{maxZoom:14,padding:[40,40]});
 }
 function select(id){
   if(activeL){
@@ -636,7 +717,7 @@ function pRow(lbl,val){return val?'<div><div class="pfl">'+lbl+'</div><div class
 function popup(p){
   const dept=p._dept||'',obs=p.obsolete;
   const mini=MINI_URL+(obs?dept+'_obsoletes':dept)+'/'+p.id_ffco+'.png';
-  const _ckey=p.numero||p.id_ffco;const nbCourses=coursesParCarte[_ckey]?coursesParCarte[_ckey].length:0;
+  const _ckey=p.numero||p.id_ffco;const _courses=coursesParCarte[p.numero]||coursesParCarte[p.id_ffco]||[];const nbCourses=_courses.length;
   const coursesLabel=coursesChargees?('Dernières courses'+(nbCourses>5?' (5/'+nbCourses+')':nbCourses>0?' ('+nbCourses+')':'')):('Dernières courses');
   return '<div class="pi">'
     +'<img class="pmini" src="'+mini+'" onerror="this.style.display=\'none\';" alt="">'
@@ -656,10 +737,10 @@ function popup(p){
     +(p.contacts?'<div style="margin-top:4px">'+pRow('Contacts',p.contacts)+'</div>':'')
     +(p.observations?'<div style="margin-top:4px">'+pRow('Observations',p.observations)+'</div>':'')
     +(p.valide?'<div style="margin-top:4px">'+pRow('Validée',p.valide)+'</div>':'')
-    +(p.url?'<a class="plink" href="'+p.url+'" target="_blank">↗ Voir sur FFCO</a>':'')
+    +(()=>{const u=p.url||(p.id_ffco&&String(p.id_ffco).match(/^\d+$/)?'https://www.ffcorientation.fr/licencie/cartographie/cartotheque/'+p.id_ffco+'/':'');return u?'<a class="plink" href="'+u+'" target="_blank">↗ Voir sur FFCO</a>':'';})()
     +'<div class="pdiv"></div>'
     +'<div class="pcourses-title">'+coursesLabel+'</div>'
-    +buildCoursesHTML(p.numero||p.id_ffco)
+    +buildCoursesHTML(p.numero, p.id_ffco)
     +'<button onclick="fermerPopupEtAdmin()" style="display:block;width:100%;margin-top:10px;padding:6px;background:rgba(61,142,240,.1);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-size:11px;cursor:pointer;font-family:var(--mono)">✏️ Saisir une course</button>'
     +'</div>';
 }
@@ -704,6 +785,8 @@ async function chargerCourses(){
       map._popup.setContent(popup(p));
     }
     if(heatmapActif) appliquerHeatmap();
+    // Rafraîchir le tableau des courses si ouvert
+    if(currentTab==='courses') { initCoursesFilters(); renderCoursesTab(); }
   }catch(e){console.warn('Courses: erreur',e);}
 }
 
@@ -727,10 +810,10 @@ function typeClass(type){
   return 'type-autre';
 }
 
-function buildCoursesHTML(id_carte){
+function buildCoursesHTML(id_carte, id_fallback){
   if(!coursesChargees)return '<div class="pcourses-loading">⏳ Chargement des courses…</div>';
-  // Chercher par numero (ex: 2024-D13-1126) ou par id_ffco
-  const courses=coursesParCarte[id_carte];
+  // Chercher par numero puis par id_ffco numérique
+  const courses=coursesParCarte[id_carte]||(id_fallback?coursesParCarte[id_fallback]:null);
   if(!courses||courses.length===0)return '<div class="pcourses-empty">Aucune course enregistrée.</div>';
   return courses.slice(0,5).map(c=>
     '<div class="pcourse">'
@@ -777,7 +860,7 @@ function onDC(id,cb){
 }
 function updateDropLabel(id){
   const n=DS[id]?DS[id].size:0;
-  const defLbl={'drop-spe-mt':'Spécialités','drop-ech-mt':'Échelles','drop-niv-mt':'Niveaux','drop-carto-mt':'Cartographes','drop-annee-mt':'Années'}[id]||'Tous';
+  const defLbl={'drop-ligue-mt':'Toutes (ligues)','drop-dept-mt':'Tous (dpts)','drop-spe-mt':'Spécialités','drop-ech-mt':'Échelles','drop-niv-mt':'Niveaux','drop-carto-mt':'Cartographes','drop-annee-mt':'Années'}[id]||'Tous';
   const lbl=document.getElementById(id+'-label');if(lbl)lbl.textContent=n?n+' sél.':defLbl;
   const cnt=document.getElementById(id+'-count');if(cnt)cnt.textContent=n+' sél.';
   const btn=document.querySelector('#'+id+'>.msdrop-btn');if(btn)btn.classList.toggle('sel',n>0);
@@ -809,14 +892,14 @@ function majFiltresDyn(){
   document.getElementById('p-spe').innerHTML=[...specialites].sort().map(s=>
     '<button class="pill'+(filtresSpe.has(s)?' aa':'')+'" data-spe="'+s.replace(/"/g,'&quot;')+'" onclick="toggleSpe(this)">'+s+'</button>'
   ).join('');
-  majSelect('f-ech',echelles);
+  majSelect('f-ech',new Set([...echelles].filter(Boolean).sort((a,b)=>(parseInt(a.split('/')[1])||0)-(parseInt(b.split('/')[1])||0))));
   majSelect('f-carto',cartographes);
   majSelectDept();
   majLigues();
-  initDrop('drop-ligue-mt', new Set(Object.entries(LIGUES).map(([c,l])=>c+' — '+l.nom)), ()=>renderTableau());
+  initDrop('drop-ligue-mt', [...Object.entries(LIGUES).map(([c,l])=>c+' — '+l.nom).sort(), 'AU — Autres'], ()=>renderTableau());
   initDrop('drop-dept-mt', new Set(DEPTS.map(d=>d+' — '+(NDEPT[d]||d))), ()=>renderTableau());
   initDrop('drop-spe-mt',specialites,()=>renderTableau());
-  initDrop('drop-ech-mt',echelles,()=>renderTableau());
+  initDrop('drop-ech-mt',[...echelles].filter(Boolean).sort((a,b)=>(parseInt(a.split('/')[1])||0)-(parseInt(b.split('/')[1])||0)),()=>renderTableau());
   initDrop('drop-niv-mt',niveaux,()=>renderTableau());
   initDrop('drop-carto-mt',cartographes,()=>renderTableau());
   initDrop('drop-annee-mt',annees,()=>renderTableau(),true);
@@ -883,6 +966,7 @@ function filtrer(){
   // Si le modal tableau/stats est ouvert, le rafraîchir
   if(document.getElementById('modal').classList.contains('open')){
     if(currentTab==='tableau') renderTableau();
+    else if(currentTab==='courses') renderCoursesTab();
     else renderStats();
   }
   // Rafraîchir la heatmap si active
@@ -1022,9 +1106,17 @@ function switchTab(tab){
   document.querySelectorAll('.modal-view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+tab).classList.add('active');
   document.getElementById('modal-filters').style.display=tab==='tableau'?'flex':'none';
-  // Mettre à jour le compteur avec les filtrees actuels
-  document.getElementById('modal-count').textContent=(filtrees.length>0?filtrees.length:cartes.length)+' cartes (depuis la carte)';
-  if(tab==='tableau')renderTableau(); else renderStats();
+  document.getElementById('courses-filters').style.display=tab==='courses'?'flex':'none';
+  if(tab==='tableau'){
+    document.getElementById('modal-count').textContent=(filtrees.length>0?filtrees.length:cartes.length)+' cartes (depuis la carte)';
+    renderTableau();
+  } else if(tab==='courses'){
+    initCoursesFilters();
+    renderCoursesTab();
+  } else {
+    document.getElementById('modal-count').textContent='';
+    renderStats();
+  }
 }
 
 // ── TABLEAU ──────────────────────────────────────────────────────────────────
@@ -1060,7 +1152,7 @@ function getDataTableau(){
     if(selLigueMt&&selLigueMt.size>0){
       const ld=DEPT_LIGUE[p._dept]||[];
       let ok=false;
-      for(const s of selLigueMt){const code=s.split(' — ')[0];if(ld.includes(code)){ok=true;break;}}
+      for(const s of selLigueMt){const code=s.split(' — ')[0];if(code==='AU'&&ld.length===0){ok=true;break;}else if(ld.includes(code)){ok=true;break;}}
       if(!ok)return false;
     }
     // Filtre département multi
@@ -1100,7 +1192,8 @@ function renderTableau(){
   document.getElementById('tbody').innerHTML=slice.map(f=>{
     const p=f.properties;
     const surf=p.surface_num?p.surface_num.toFixed(2)+' km²':'—';
-    return '<tr onclick="fermerModal();select(\''+p.id_ffco+'\')">'
+    const miniSrc=MINI_URL+(p.obsolete?p._dept+'_obsoletes':p._dept)+'/'+p.id_ffco+'.png';
+    return '<tr data-mini="'+miniSrc+'" onclick="fermerModal();selectZoom(\''+p.id_ffco+'\')">'
       +'<td title="'+(p.nom||'')+'">'+(p.nom||'—')+'</td>'
       +'<td>'+(p._dept||'')+'</td>'
       +'<td>'+(p.specialite||'—')+'</td>'
@@ -1178,6 +1271,123 @@ function renderStats(){
 }
 
 // ── EXPORT CSV ────────────────────────────────────────────────────────────────
+// ── TABLEAU DES COURSES ───────────────────────────────────────────────────────
+let coursesSortCol='date', coursesSortDir=-1; // desc par défaut
+
+// ── Normalisation des dates ────────────────────────────────────────────────
+// Gère DD/MM/YYYY, D/M/YYYY, YYYY-MM-DD, YYYY/MM/DD
+function _parseDate(str){
+  if(!str) return null;
+  str=str.trim();
+  let m;
+  // DD/MM/YYYY ou D/M/YYYY
+  m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  // YYYY-MM-DD
+  m=str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  // YYYY/MM/DD
+  m=str.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  return null;
+}
+function _dateTs(str){ const d=_parseDate(str); return d?d.getTime():0; }
+function _dateYear(str){ const d=_parseDate(str); return d?String(d.getFullYear()):''; }
+function _dateFmt(str){
+  const d=_parseDate(str);
+  if(!d) return str||'—';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+
+function _flatCourses(){
+  const carteMap={};
+  cartes.forEach(f=>{
+    const p=f.properties;
+    if(p.numero) carteMap[String(p.numero)]=p;
+    if(p.id_ffco) carteMap[String(p.id_ffco)]=p;
+  });
+  const all=[];
+  Object.entries(coursesParCarte).forEach(([id,courses])=>{
+    const p=carteMap[String(id)]||{};
+    courses.forEach(c=>all.push({...c,id_carte:id,id_ffco:p.id_ffco||id,carte_nom:p.nom||id,carte_dept:p._dept||'',_ts:_dateTs(c.date),_year:_dateYear(c.date)}));
+  });
+  return all;
+}
+
+function initCoursesFilters(){
+  const all=_flatCourses();
+  // Types
+  const types=[...new Set(all.map(c=>c.type).filter(Boolean))].sort();
+  const selType=document.getElementById('ct-type');
+  if(selType){
+    const prev=selType.value;
+    selType.innerHTML='<option value="">Tous types</option>'+types.map(t=>'<option value="'+t+'"'+(t===prev?' selected':'')+'>'+t+'</option>').join('');
+  }
+  // Années — extraites avec parsing correct, triées numériquement desc
+  const annees=[...new Set(all.map(c=>c._year).filter(Boolean))].sort((a,b)=>+b-+a);
+  const selAnnee=document.getElementById('ct-annee');
+  if(selAnnee){
+    const prev=selAnnee.value;
+    selAnnee.innerHTML='<option value="">Toutes années</option>'+annees.map(a=>'<option value="'+a+'"'+(a===prev?' selected':'')+'>'+a+'</option>').join('');
+  }
+}
+
+function sortCourses(col){
+  if(coursesSortCol===col) coursesSortDir*=-1; else{coursesSortCol=col;coursesSortDir=col==='date'?-1:1;}
+  document.querySelectorAll('#view-courses .dtable th').forEach(th=>{
+    th.className='';
+    if(th.getAttribute('onclick')==="sortCourses('"+col+"')")th.className=coursesSortDir===1?'sort-asc':'sort-desc';
+  });
+  renderCoursesTab();
+}
+
+function renderCoursesTab(){
+  if(!coursesChargees){
+    document.getElementById('tbody-courses').innerHTML='<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted);font-style:italic">⏳ Chargement des courses…</td></tr>';
+    document.getElementById('modal-count').textContent='—';
+    return;
+  }
+  const q=(document.getElementById('ct-search')?.value||'').toLowerCase().trim();
+  const typeF=document.getElementById('ct-type')?.value||'';
+  const anneeF=document.getElementById('ct-annee')?.value||'';
+
+  let data=_flatCourses().filter(c=>{
+    if(typeF&&c.type!==typeF)return false;
+    if(anneeF&&c._year!==anneeF)return false;
+    if(q){const h=[c.nom,c.type,c.carte_nom,c.carte_dept,_dateFmt(c.date),c._year].filter(Boolean).join(' ').toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+
+  data.sort((a,b)=>{
+    if(coursesSortCol==='date') return (a._ts-b._ts)*coursesSortDir;
+    const va=(a[coursesSortCol]||'').toString().toLowerCase();
+    const vb=(b[coursesSortCol]||'').toString().toLowerCase();
+    return va<vb?-coursesSortDir:va>vb?coursesSortDir:0;
+  });
+
+  document.getElementById('modal-count').textContent=data.length+' course'+(data.length>1?'s':'');
+  document.getElementById('modal-footer').textContent=data.length+' course'+(data.length>1?'s':'');
+
+  const MAX=2000;
+  document.getElementById('tbody-courses').innerHTML=data.slice(0,MAX).map(c=>{
+    const lien=c.lien?'<a href="'+c.lien+'" target="_blank" style="color:var(--accent);font-size:10px;margin-left:4px">↗</a>':'';
+    return '<tr onclick="fermerModal();selectZoom(\''+c.id_ffco+'\')" title="Voir sur la carte">'
+      +'<td style="font-family:var(--mono);white-space:nowrap">'+_dateFmt(c.date)+'</td>'
+      +'<td>'+(c.nom||'—')+lien+'</td>'
+      +'<td><span class="pcourse-type '+typeClass(c.type)+'">'+(c.type||'—')+'</span></td>'
+      +'<td style="color:var(--accent)">'+(c.carte_nom||'—')+'</td>'
+      +'<td>'+(c.carte_dept||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function resetCoursesTab(){
+  document.getElementById('ct-search').value='';
+  document.getElementById('ct-type').value='';
+  document.getElementById('ct-annee').value='';
+  renderCoursesTab();
+}
+
 function exportCSV(){
   const cols=['nom','_dept','specialite','echelle','annee','surface','commune','cartographes','niveau','format','numero','obsolete'];
   const hdrs=['Nom','Dept','Spécialité','Échelle','Année','Surface','Commune','Cartographes','Niveau','Format','Numéro','Statut'];
@@ -1186,6 +1396,34 @@ function exportCSV(){
 }
 
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))fermerModal();});
+
+// ── MINIATURE TOOLTIP TABLEAU ─────────────────────────────────────────────────
+(function(){
+  const tip=document.getElementById('mini-tooltip');
+  const img=document.getElementById('mini-tooltip-img');
+  const tbody=document.getElementById('tbody');
+  let lastSrc='';
+  let currentTr=null;
+  tbody.addEventListener('mouseover',e=>{
+    const tr=e.target.closest('tr[data-mini]');
+    if(!tr){tip.style.display='none';currentTr=null;return;}
+    const src=tr.getAttribute('data-mini');
+    if(src&&src!==lastSrc){lastSrc=src;img.src=src;}
+    currentTr=tr;
+    tip.style.display='block';
+  });
+  tbody.addEventListener('mousemove',e=>{
+    if(!currentTr)return;
+    const rect=currentTr.getBoundingClientRect();
+    let x=e.clientX-110,y=rect.bottom+4;
+    if(x+290>window.innerWidth)x=window.innerWidth-290;
+    if(x<0)x=0;
+    if(y+290>window.innerHeight)y=rect.top-294;
+    tip.style.left=x+'px';tip.style.top=y+'px';
+  });
+  tbody.addEventListener('mouseleave',()=>{tip.style.display='none';lastSrc='';currentTr=null;});
+  img.addEventListener('error',()=>{tip.style.display='none';});
+})();
 
 // ── ADMIN GOOGLE SHEETS ──────────────────────────────────────────────────────
 const ADMIN_CLIENT_ID = "923093647594-dtnib5m32v6ta443d8mqkbc989pa8sa7.apps.googleusercontent.com";
@@ -1343,12 +1581,12 @@ function renderAdminForm(){
         <div class="afield">
           <label>Type</label>
           <select id="a-type">
-            <option>PATO</option>
             <option>Championnat</option>
+            <option>Challenge PACA</option>
             <option>Entraînement</option>
-            <option>National</option>
-            <option>Coupe</option>
-            <option>Autre</option>
+            <option>PAOT</option>
+            <option>Course à étapes</option>
+            <option>Nationale</option>
           </select>
         </div>
       </div>
@@ -1528,8 +1766,7 @@ function couleurHeatmap(nb, max) {
 function appliquerHeatmapLayer(layer){
   if(!layer||!layer.feature) return;
   const p = layer.feature.properties;
-  const key = p.numero||p.id_ffco;
-  const nb = (coursesParCarte[key]||[]).length;
+  const nb = (coursesParCarte[p.numero]||coursesParCarte[p.id_ffco]||[]).length;
   const valeurs = Object.values(coursesParCarte).map(v=>v.length).filter(v=>v>0);
   const max = valeurs.length ? Math.max(...valeurs) : 0;
   const col = couleurHeatmap(nb, max);
@@ -1572,7 +1809,7 @@ function appliquerHeatmap() {
   const valeurs = Object.values(comptage).filter(v => v > 0);
   const max = valeurs.length ? Math.max(...valeurs) : 0;
   const avecCourses = valeurs.length;
-  const sansCourses = cartes.filter(f => !comptage[f.properties.numero||f.properties.id_ffco]).length;
+  const sansCourses = cartes.filter(f => !comptage[f.properties.numero] && !comptage[f.properties.id_ffco]).length;
 
   // Mettre à jour la légende
   document.getElementById('heatmap-max').textContent = max + ' course' + (max>1?'s':'');
@@ -1589,8 +1826,7 @@ function appliquerHeatmap() {
     const el = l.getElement?.();
     if(el && !visibles.has(p.id_ffco)){ el.style.display='none'; return; }
     if(el) el.style.display='';
-    const key = p.numero || p.id_ffco;
-    const nb = comptage[key] || 0;
+    const nb = (comptage[p.numero]||comptage[p.id_ffco]||0);
     const col = couleurHeatmap(nb, max);
     l.setStyle({
       color:       nb === 0 ? '#ffffff' : col,
