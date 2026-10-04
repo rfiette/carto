@@ -294,21 +294,27 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   .leaflet-popup-content{max-height:58dvh;overflow-y:auto;}
   .pi{max-width:86vw;}
   /* Tableaux / stats en plein écran */
-  .modal{width:100vw;max-width:none;height:100dvh;border-radius:0;border:none;}
-  .modal-header{flex-wrap:wrap;padding:10px;}
-  .mtabs{order:3;width:100%;overflow-x:auto;}
-  .mtab{padding:8px 10px;font-size:12px;white-space:nowrap;}
+  /* Le tableau s'ouvre sous l'en-tête : mêmes boutons que sur l'accueil */
+  .modal-overlay{top:48px;background:var(--bg);}
+  .modal{width:100vw;max-width:none;height:calc(100dvh - 48px);border-radius:0;border:none;}
+  .modal-header{padding:8px 12px;}
+  .mtabs{display:none;}
   .modal-close{font-size:28px;}
-  .modal-filters{overflow-x:auto;flex-wrap:nowrap;}
-  .mfsel,.mfinput{font-size:16px;flex-shrink:0;}
+  .modal-filters{display:grid!important;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;}
+  #courses-filters[style*="none"],#modal-filters[style*="none"]{display:none!important;}
+  .modal-filters>*{width:100%!important;min-width:0;}
+  .mfsel,.mfinput{font-size:16px;padding:8px 10px;}
+  .modal-filters .msdrop-btn{font-size:15px!important;padding:8px 10px!important;min-width:0!important;}
+  .modal-filters .msdrop-btn span:first-child{overflow:hidden;text-overflow:ellipsis;}
+  .msdrop-panel{max-width:90vw;}
   .admin-modal{width:100vw;max-width:100vw;max-height:100dvh;overflow-y:auto;border-radius:0;}
 }
 </style>
 </head>
 <body>
 <header>
-  <button class="hbtn mob-only" id="btn-filtres" onclick="toggleSidebar()">☰ Filtres</button>
-  <div class="logo">
+  <button class="hbtn mob-only" id="btn-filtres" onclick="fermerModalSiOuvert();toggleSidebar()">☰ Filtres</button>
+  <div class="logo" onclick="fermerModalSiOuvert()" style="cursor:pointer" title="Retour à la carte">
     <div class="logo-icon">CO</div>
     <div>
       <div class="logo-text">CartoCO France</div>
@@ -319,10 +325,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   <div class="hstat"><div class="dot" style="background:var(--green)"></div><span id="s-act">—</span>&nbsp;actives</div>
   <div class="hstat"><div class="dot" style="background:var(--orange)"></div><span id="s-obs">—</span>&nbsp;obsolètes</div>
   <div class="spacer"></div>
-  <button class="hbtn" onclick="ouvrirModal('tableau')" title="Tableau cartes">📊<span class="hlbl"> Tableau cartes</span></button>
-  <button class="hbtn" onclick="ouvrirModal('courses')" title="Tableau courses">🏃<span class="hlbl"> Tableau courses</span></button>
-  <button class="hbtn" id="btn-heatmap" onclick="toggleHeatmap()" title="Heatmap">🔥<span class="hlbl"> Heatmap</span></button>
-  <button class="hbtn" onclick="ouvrirModal('stats')" title="Stats">📈<span class="hlbl"> Stats</span></button>
+  <button class="hbtn" data-tab="tableau" onclick="naviguer('tableau')" title="Tableau cartes">📊<span class="hlbl"> Tableau cartes</span></button>
+  <button class="hbtn" data-tab="courses" onclick="naviguer('courses')" title="Tableau courses">🏃<span class="hlbl"> Tableau courses</span></button>
+  <button class="hbtn" id="btn-heatmap" onclick="fermerModalSiOuvert();toggleHeatmap()" title="Heatmap">🔥<span class="hlbl"> Heatmap</span></button>
+  <button class="hbtn" data-tab="stats" onclick="naviguer('stats')" title="Stats">📈<span class="hlbl"> Stats</span></button>
   <div class="hstat" id="s-load" style="color:var(--accent)">Chargement...</div>
 </header>
 <div class="lbar"><div class="lfill" id="lfill"></div></div>
@@ -1142,6 +1148,7 @@ function appliquerFiltresCarteVersTableau(){
 
 function fermerModal(){
   document.getElementById('modal').classList.remove('open');
+  document.querySelectorAll('header .hbtn[data-tab]').forEach(b=>b.classList.remove('active'));
   // Appliquer les filtres tableau à la carte
   appliquerFiltresTableauVersCarte();
 }
@@ -1200,8 +1207,19 @@ function appliquerFiltresTableauVersCarte(){
 
   filtrer();
 }
+// Boutons de l'en-tête : ouvrir le tableau, ou changer d'onglet s'il est déjà ouvert
+function naviguer(tab){
+  if(document.getElementById('modal').classList.contains('open')){
+    if(currentTab===tab)fermerModal();else switchTab(tab);
+  } else ouvrirModal(tab);
+}
+function fermerModalSiOuvert(){
+  if(document.getElementById('modal').classList.contains('open'))fermerModal();
+}
+
 function switchTab(tab){
   currentTab=tab;
+  document.querySelectorAll('header .hbtn[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.querySelectorAll('.modal-view').forEach(v=>v.classList.remove('active'));
