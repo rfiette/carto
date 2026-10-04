@@ -261,8 +261,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .heatmap-stats span{color:var(--text);font-weight:600;}
 
 /* Le tableau s'ouvre sous l'en-tête : mêmes boutons que sur l'accueil (ils servent d'onglets) */
-.modal-overlay{top:48px;background:var(--bg);}
-.modal{width:100%;max-width:none;height:calc(100vh - 48px);height:calc(100dvh - 48px);border-radius:0;border:none;}
+.modal-overlay{top:48px;}
+.modal{height:calc(100vh - 48px - 6vh);}
 .mtabs{display:none;}
 
 /* ── MOBILE ── */
@@ -299,6 +299,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
   .leaflet-popup-content{max-height:58dvh;overflow-y:auto;}
   .pi{max-width:86vw;}
   /* Tableaux / stats en plein écran */
+  .modal-overlay{background:var(--bg);}
+  .modal{width:100%;max-width:none;height:calc(100dvh - 48px);border-radius:0;border:none;}
   .modal-header{padding:8px 12px;}
   .modal-close{font-size:28px;}
   .modal-filters{display:grid!important;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;}
