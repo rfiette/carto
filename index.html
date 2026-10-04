@@ -544,17 +544,25 @@ let currentTab='tableau';
 let _tableauData=[];
 
 // ── FONDS DE CARTE ──
+// CARTO exige désormais une clé API (gratuite : https://carto.com/basemaps/apikey).
+// Renseigner CARTO_KEY pour utiliser le fond CARTO ; sinon fond sombre Esri (sans clé).
+const CARTO_KEY='';
 const LAYERS={
-  dark:   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',subdomains:'abcd',maxZoom:19}),
+  dark:   CARTO_KEY
+    ? L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key='+CARTO_KEY,{attribution:'© OSM © CARTO',subdomains:'abcd',maxZoom:19})
+    : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:16}),
   osm:    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
   aerial: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}),
 };
 // Overlay noms de villes (langue locale = français en France) — utilisé sur dark et aerial
 const cityLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19,opacity:0.9});
+// Libellés du fond sombre Esri (le fond CARTO dark_all les inclut déjà)
+const darkLabels = CARTO_KEY ? null : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16});
 let currentBaseLayer=LAYERS.dark;
 
 const map=L.map('map',{zoomControl:false}).setView([46.5,2.5],6);
 LAYERS.dark.addTo(map);
+if(darkLabels)darkLabels.addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
 
 // Déplacer le sélecteur dans le conteneur map Leaflet
@@ -564,10 +572,12 @@ document.getElementById('layer-ctrl').style.position='absolute';
 function setLayer(name,btn){
   map.removeLayer(currentBaseLayer);
   if(map.hasLayer(cityLabels))map.removeLayer(cityLabels);
+  if(darkLabels&&map.hasLayer(darkLabels))map.removeLayer(darkLabels);
   currentBaseLayer=LAYERS[name];
   currentBaseLayer.addTo(map);
   currentBaseLayer.bringToBack();
   if(name==='aerial'){cityLabels.addTo(map);}
+  if(name==='dark'&&darkLabels){darkLabels.addTo(map);}
   if(geoLayer)geoLayer.bringToFront();
   document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
