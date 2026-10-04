@@ -52,19 +52,42 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 .rcnt{color:var(--text);font-weight:600;}
 .breset{font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 5px;border-radius:3px;}
 .breset:hover{color:var(--accent);}
-.clist{flex:1;overflow-y:auto;}
-.clist::-webkit-scrollbar{width:4px;}
-.clist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.citem{padding:8px 12px;cursor:pointer;border-left:2px solid transparent;border-bottom:1px solid rgba(42,51,71,.4);transition:all .1s;}
-.citem:hover{background:var(--surface2);border-left-color:var(--border);}
-.citem.active{background:rgba(61,142,240,.07);border-left-color:var(--accent);}
-.citem.obs{opacity:.7;}
 .cname{font-size:12px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cmeta{display:flex;gap:4px;flex-wrap:wrap;}
 .tag{padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);}
 .td{background:rgba(61,142,240,.12);color:var(--accent);}
 .to{background:rgba(240,96,96,.12);color:var(--red);}
 .te{background:rgba(255,255,255,.06);color:var(--muted);}
+/* SIDEBAR — filtres agrandis et plus lisibles */
+.sidebar{width:360px;}
+.sidebar .rhead{padding:10px 16px;font-size:14px;}
+.sidebar .rcnt{font-size:16px;}
+.sidebar .breset{font-size:13px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;}
+.sidebar .breset:hover{border-color:var(--accent);}
+.sidebar .stop{padding:14px 16px;border-bottom:none;}
+.sidebar .sw{margin-bottom:10px;}
+.sidebar .sw input{padding:10px 12px 10px 34px;font-size:15px;border-radius:8px;}
+.sidebar .si{left:11px;font-size:14px;}
+.sidebar .fgrp{margin-bottom:16px;}
+.sidebar .flabel{font-size:12px;font-weight:600;color:var(--text);opacity:.85;margin-bottom:6px;}
+.sidebar .flabel-badge{font-size:10px;padding:0 4px;}
+.sidebar .pills{gap:6px;}
+.sidebar .pill{padding:6px 13px;font-size:13px;}
+.sidebar .msdrop-btn{padding:9px 12px;font-size:14px;border-radius:8px;}
+.sidebar .msdrop-panel{max-width:330px;}
+.sidebar .msdrop-item{padding:7px 12px;font-size:14px;}
+.sidebar .dsel-multi{font-size:14px;border-radius:8px;padding:4px 0;}
+.sidebar .dsel-multi option{padding:6px 10px;}
+.sidebar .dsel-hint{font-size:11px;margin-top:4px;}
+/* Liste de résultats sous la recherche */
+.sugg{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:900;max-height:60vh;overflow-y:auto;}
+.sugg.open{display:block;}
+.sugg-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid rgba(42,51,71,.4);}
+.sugg-item:hover{background:var(--surface2);}
+.sugg-item.obs{opacity:.7;}
+.sugg-name{font-size:14px;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sugg-meta{display:flex;gap:4px;flex-wrap:wrap;}
+.sugg-more{padding:8px 12px;font-size:12px;color:var(--muted);font-family:var(--mono);}
 /* MAP */
 #map{flex:1;}
 /* Sélecteur fond de carte */
@@ -408,10 +431,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
 <!-- LAYOUT -->
 <div class="layout">
   <aside class="sidebar">
+    <div class="rhead">
+      <span><span class="rcnt" id="rcnt">0</span> cartes</span>
+      <button class="breset" onclick="reset()">Réinitialiser</button>
+    </div>
     <div class="stop">
       <div class="sw">
         <span class="si">🔍</span>
-        <input type="text" id="search" placeholder="Nom, commune, cartographe…" oninput="filtrer()">
+        <input type="text" id="search" placeholder="Nom, commune, cartographe…" autocomplete="off" oninput="filtrer()" onfocus="renderSuggestions()" onkeydown="if(event.key==='Escape')hideSuggestions()">
+        <div class="sugg" id="sugg"></div>
       </div>
       <div class="fgrp">
         <div class="flabel">Statut</div>
@@ -436,7 +464,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
           <span class="si">🔍</span>
           <input type="text" id="f-dept-search" placeholder="Rechercher…" oninput="filtrerSelectOptions('f-dept',this.value)">
         </div>
-        <select class="dsel-multi" id="f-dept" multiple size="4" onchange="filtrer()"></select>
+        <select class="dsel-multi" id="f-dept" multiple size="8" onchange="filtrer()"></select>
         <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
       <div class="fgrp">
@@ -445,7 +473,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
       </div>
       <div class="fgrp">
         <div class="flabel">Échelle <span class="flabel-badge">multi</span></div>
-        <select class="dsel-multi" id="f-ech" multiple size="4" onchange="filtrer()">
+        <select class="dsel-multi" id="f-ech" multiple size="6" onchange="filtrer()">
         </select>
         <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
@@ -455,16 +483,11 @@ header{position:fixed;top:0;left:0;right:0;z-index:1000;height:48px;background:v
           <span class="si">🔍</span>
           <input type="text" id="f-carto-search" placeholder="Rechercher…" oninput="filtrerSelectOptions('f-carto',this.value)">
         </div>
-        <select class="dsel-multi" id="f-carto" multiple size="4" onchange="filtrer()">
+        <select class="dsel-multi" id="f-carto" multiple size="8" onchange="filtrer()">
         </select>
         <div class="dsel-hint">Ctrl+clic pour sélection multiple</div>
       </div>
     </div>
-    <div class="rhead">
-      <span><span class="rcnt" id="rcnt">0</span> cartes</span>
-      <button class="breset" onclick="reset()">Réinitialiser</button>
-    </div>
-    <div class="clist" id="clist"></div>
   </aside>
   <div id="map" style="position:relative">
     <!-- Légende heatmap -->
@@ -718,8 +741,6 @@ function select(id){
   // Centrer sur la carte sans changer le zoom
   map.panTo(layer.getBounds().getCenter());
   layer.openPopup();
-  document.querySelectorAll('.citem').forEach(el=>el.classList.toggle('active',el.dataset.id==id));
-  document.querySelector('.citem[data-id="'+id+'"]')?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ── POPUP ──
@@ -972,7 +993,7 @@ function filtrer(){
   filtrees=getFiltrees();
   if(geoLayer){const vis=new Set(filtrees.map(f=>f.properties.id_ffco));geoLayer.eachLayer(l=>{const el=l.getElement?.();if(el)el.style.display=vis.has(l.feature?.properties?.id_ffco)?'':'none';});}
   document.getElementById('rcnt').textContent=filtrees.length;
-  renderListe();
+  renderSuggestions();
   // Si le modal tableau/stats est ouvert, le rafraîchir
   if(document.getElementById('modal').classList.contains('open')){
     if(currentTab==='tableau') renderTableau();
@@ -982,6 +1003,27 @@ function filtrer(){
   // Rafraîchir la heatmap si active
   if(heatmapActif) appliquerHeatmap();
 }
+
+// Liste des cartes trouvées, affichée sous le champ de recherche
+function renderSuggestions(){
+  const box=document.getElementById('sugg'),inp=document.getElementById('search');
+  if(!inp.value.trim()||document.activeElement!==inp){hideSuggestions();return;}
+  const MAX=50,esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+  box.innerHTML=filtrees.length?filtrees.slice(0,MAX).map(f=>{
+    const p=f.properties;
+    return '<div class="sugg-item'+(p.obsolete?' obs':'')+'" data-id="'+esc(p.id_ffco)+'">'+
+      '<div class="sugg-name">'+esc(p.nom||p.id_ffco)+'</div>'+
+      '<div class="sugg-meta">'+(p._dept?'<span class="tag td">'+esc(p._dept)+'</span>':'')+(p.obsolete?'<span class="tag to">obs.</span>':'')+(p.echelle?'<span class="tag te">'+esc(p.echelle)+'</span>':'')+(p.annee?'<span class="tag te">'+esc(p.annee)+'</span>':'')+'</div></div>';
+  }).join('')+(filtrees.length>MAX?'<div class="sugg-more">+'+(filtrees.length-MAX)+' autres — affinez la recherche</div>':'')
+  :'<div class="sugg-more">Aucune carte trouvée</div>';
+  box.classList.add('open');
+}
+function hideSuggestions(){document.getElementById('sugg').classList.remove('open');}
+document.getElementById('sugg').addEventListener('mousedown',e=>{
+  const it=e.target.closest('.sugg-item');if(!it)return;
+  e.preventDefault();hideSuggestions();selectZoom(it.dataset.id);
+});
+document.getElementById('search').addEventListener('blur',hideSuggestions);
 
 function toggleStatut(type,btn){
   if(type==='act'){showAct=!showAct;btn.className='pill'+(showAct?' ag':'');}
@@ -1002,17 +1044,6 @@ function reset(){
   filtrerSelectOptions('f-dept','');
   clearDrop('drop-ligue-sb');
   filtrer();
-}
-
-function renderListe(){
-  const MAX=200;const list=document.getElementById('clist');
-  list.innerHTML=filtrees.slice(0,MAX).map(f=>{
-    const p=f.properties;
-    return '<div class="citem'+(p.obsolete?' obs':'')+'" data-id="'+p.id_ffco+'" onclick="select(\''+p.id_ffco+'\')">'+
-      '<div class="cname">'+(p.nom||p.id_ffco)+'</div>'+
-      '<div class="cmeta">'+(p._dept?'<span class="tag td">'+p._dept+'</span>':'')+(p.obsolete?'<span class="tag to">obs.</span>':'')+(p.echelle?'<span class="tag te">'+p.echelle+'</span>':'')+(p.annee?'<span class="tag te">'+p.annee+'</span>':'')+'</div></div>';
-  }).join('');
-  if(filtrees.length>MAX)list.innerHTML+='<div style="padding:10px 12px;font-size:11px;color:var(--muted);font-family:var(--mono)">+'+(filtrees.length-MAX)+' autres</div>';
 }
 
 // ── MODAL ────────────────────────────────────────────────────────────────────
