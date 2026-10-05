@@ -620,7 +620,6 @@ function matchLigue(dept){
 
 // ── ÉTAT ──
 let cartes=[],filtrees=[],activeL=null,layerMap={},geoLayer=null;
-let uidSeq=0; // _uid = clé interne unique (id_ffco n'est pas unique dans les données FFCO)
 let showAct=true,showObs=false,obsCharges=false;
 let filtresSpe=new Set();
 let specialites=new Set(),echelles=new Set(),cartographes=new Set(),niveaux=new Set(),annees=new Set();
@@ -645,10 +644,7 @@ const cityLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/serv
 const darkLabels = CARTO_KEY ? null : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16});
 let currentBaseLayer=LAYERS.dark;
 
-// Rendu Canvas : un seul <canvas> au lieu d'~14 000 éléments SVG (bien plus fluide, surtout sur mobile).
-// tolerance : zone de clic élargie autour des contours (pratique au doigt).
-const canvasRenderer=L.canvas({padding:0.5,tolerance:4});
-const map=L.map('map',{zoomControl:false,preferCanvas:true,renderer:canvasRenderer}).setView([46.5,2.5],6);
+const map=L.map('map',{zoomControl:false}).setView([46.5,2.5],6);
 LAYERS.dark.addTo(map);
 if(darkLabels)darkLabels.addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
@@ -672,8 +668,8 @@ function setLayer(name,btn){
 }
 
 // ── STYLES MAP ──
-const sA={color:"#3d8ef0",fillColor:"#3d8ef0",fillOpacity:.12,weight:1.5,opacity:.7,dashArray:null};
-const sO={color:"#f0a13d",fillColor:"#f0a13d",fillOpacity:.12,weight:1.5,opacity:.7,dashArray:null};
+const sA={color:"#3d8ef0",fillColor:"#3d8ef0",fillOpacity:.12,weight:1.5,opacity:.7};
+const sO={color:"#f0a13d",fillColor:"#f0a13d",fillOpacity:.12,weight:1.5,opacity:.7};
 const sAH={...sA,fillOpacity:.25,weight:2.5,opacity:1};
 const sOH={...sO,fillOpacity:.25,weight:2.5,opacity:1};
 const sAS={...sA,fillOpacity:.35,weight:3,opacity:1};
@@ -705,7 +701,7 @@ async function chargerDept(dept){
     const r=await fetch(DATA_URL+dept+'.geojson');
     if(!r.ok)return 0;
     const data=await r.json();
-    data.features.forEach(f=>{f.properties._dept=dept;f.properties.obsolete=false;f.properties._uid='c'+(uidSeq++);cartes.push(f);indexFeature(f);});
+    data.features.forEach(f=>{f.properties._dept=dept;f.properties.obsolete=false;cartes.push(f);indexFeature(f);});
     ajouterLayers(data.features);
     return data.features.length;
   }catch(e){return 0;}
@@ -716,7 +712,7 @@ async function chargerObsDept(dept){
     const r=await fetch(DATA_URL+dept+'_obsoletes.geojson');
     if(!r.ok)return 0;
     const data=await r.json();
-    data.features.forEach(f=>{f.properties._dept=dept;f.properties.obsolete=true;f.properties._uid='c'+(uidSeq++);cartes.push(f);indexFeature(f);});
+    data.features.forEach(f=>{f.properties._dept=dept;f.properties.obsolete=true;cartes.push(f);indexFeature(f);});
     ajouterLayers(data.features);
     return data.features.length;
   }catch(e){return 0;}
@@ -765,17 +761,16 @@ async function init(){
 // ── LAYERS ──
 function ajouterLayers(features){
   if(!geoLayer)geoLayer=L.geoJSON([],{style:f=>sb(f),onEachFeature:bind}).addTo(map);
-  const news=features.filter(f=>f.geometry&&!layerMap[f.properties._uid]);
+  const news=features.filter(f=>!layerMap[f.properties.id_ffco]);
   if(news.length)geoLayer.addData({type:"FeatureCollection",features:news});
-  news.forEach(f=>{const l=layerMap[f.properties._uid];if(l)l._visible=true;});
 }
 function bind(feature,layer){
   const p=feature.properties;
-  layerMap[p._uid]=layer;
+  layerMap[p.id_ffco]=layer;
   layer.bindTooltip(esc(p.nom||p.id_ffco),{sticky:true});
   // Contenu généré à l'ouverture : toujours à jour (courses chargées ou non)
   layer.bindPopup(()=>popup(p),{maxWidth:320});
-  layer.on('click',()=>select(p._uid));
+  layer.on('click',()=>select(p.id_ffco));
   layer.on('mouseover',()=>{
     if(heatmapActif) return; // pas de survol en mode heatmap
     if(activeL!==layer)layer.setStyle(sh(feature));
@@ -785,9 +780,6 @@ function bind(feature,layer){
     if(activeL!==layer)layer.setStyle(sb(feature));
   });
 }
-// Parcourt tous les polygones, y compris ceux masqués par les filtres
-function eachCarteLayer(fn){for(const k in layerMap)fn(layerMap[k]);}
-
 function selectZoom(id){
   select(id);
   const layer=layerMap[id];
@@ -1060,16 +1052,7 @@ function getFiltrees(){
 
 function filtrer(){
   filtrees=getFiltrees();
-  // Canvas : on retire / remet les polygones (seulement ceux dont la visibilité change)
-  if(geoLayer){
-    const vis=new Set(filtrees.map(f=>f.properties._uid));
-    eachCarteLayer(l=>{
-      const v=vis.has(l.feature.properties._uid);
-      if(v===l._visible)return;
-      l._visible=v;
-      if(v)geoLayer.addLayer(l);else{if(activeL===l)l.closePopup();geoLayer.removeLayer(l);}
-    });
-  }
+  if(geoLayer){const vis=new Set(filtrees.map(f=>f.properties.id_ffco));geoLayer.eachLayer(l=>{const el=l.getElement?.();if(el)el.style.display=vis.has(l.feature?.properties?.id_ffco)?'':'none';});}
   document.getElementById('rcnt').textContent=filtrees.length;
   document.getElementById('rcnt-mob').textContent=filtrees.length;
   renderSuggestions();
@@ -1090,7 +1073,7 @@ function renderSuggestions(){
   const MAX=50;
   box.innerHTML=filtrees.length?filtrees.slice(0,MAX).map(f=>{
     const p=f.properties;
-    return '<div class="sugg-item'+(p.obsolete?' obs':'')+'" data-id="'+esc(p._uid)+'">'+
+    return '<div class="sugg-item'+(p.obsolete?' obs':'')+'" data-id="'+esc(p.id_ffco)+'">'+
       '<div class="sugg-name">'+esc(p.nom||p.id_ffco)+'</div>'+
       '<div class="sugg-meta">'+(p._dept?'<span class="tag td">'+esc(p._dept)+'</span>':'')+(p.obsolete?'<span class="tag to">obs.</span>':'')+(p.echelle?'<span class="tag te">'+esc(p.echelle)+'</span>':'')+(p.annee?'<span class="tag te">'+esc(p.annee)+'</span>':'')+'</div></div>';
   }).join('')+(filtrees.length>MAX?'<div class="sugg-more">+'+(filtrees.length-MAX)+' autres — affinez la recherche</div>':'')
@@ -1278,7 +1261,7 @@ function renderTableau(){
     const p=f.properties;
     const surf=p.surface_num?p.surface_num.toFixed(2)+' km²':'—';
     const miniSrc=MINI_URL+(p.obsolete?p._dept+'_obsoletes':p._dept)+'/'+p.id_ffco+'.png';
-    return '<tr data-mini="'+esc(miniSrc)+'" onclick="fermerModal();selectZoom('+jsArg(p._uid)+')">'
+    return '<tr data-mini="'+esc(miniSrc)+'" onclick="fermerModal();selectZoom('+jsArg(p.id_ffco)+')">'
       +'<td title="'+esc(p.nom)+'">'+esc(p.nom||'—')+'</td>'
       +'<td>'+esc(p._dept)+'</td>'
       +'<td>'+esc(p.specialite||'—')+'</td>'
@@ -1351,7 +1334,7 @@ function renderStats(){
     <div class="stat-card" style="grid-column:1/-1"><h3>Plus grandes cartes — top 10</h3>
     <table style="width:100%;font-size:11px;border-collapse:collapse">
       <tr style="font-family:var(--mono);font-size:10px;color:var(--muted)"><th style="text-align:left;padding:4px 8px">Nom</th><th>Dept</th><th>Spécialité</th><th>Année</th><th style="text-align:right">Surface</th><th>Statut</th></tr>
-      ${grandesCartes.map(f=>{const p=f.properties;return '<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="fermerModal();selectZoom('+jsArg(p._uid)+')"><td style="padding:5px 8px;font-weight:500">'+esc(p.nom||'—')+'</td><td style="padding:5px 8px">'+esc(p._dept)+'</td><td style="padding:5px 8px">'+esc(p.specialite||'—')+'</td><td style="padding:5px 8px;font-family:var(--mono)">'+esc(p.annee||'—')+'</td><td style="padding:5px 8px;text-align:right;font-family:var(--mono);color:var(--accent)">'+p.surface_num.toFixed(2)+' km²</td><td style="padding:5px 8px">'+(p.obsolete?'<span class="badge-obs">Obs.</span>':'<span class="badge-act">Active</span>')+'</td></tr>';}).join('')}
+      ${grandesCartes.map(f=>{const p=f.properties;return '<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="fermerModal();selectZoom('+jsArg(p.id_ffco)+')"><td style="padding:5px 8px;font-weight:500">'+esc(p.nom||'—')+'</td><td style="padding:5px 8px">'+esc(p._dept)+'</td><td style="padding:5px 8px">'+esc(p.specialite||'—')+'</td><td style="padding:5px 8px;font-family:var(--mono)">'+esc(p.annee||'—')+'</td><td style="padding:5px 8px;text-align:right;font-family:var(--mono);color:var(--accent)">'+p.surface_num.toFixed(2)+' km²</td><td style="padding:5px 8px">'+(p.obsolete?'<span class="badge-obs">Obs.</span>':'<span class="badge-act">Active</span>')+'</td></tr>';}).join('')}
     </table></div>`;
 }
 
@@ -1394,7 +1377,7 @@ function _flatCourses(){
   const all=[];
   Object.entries(coursesParCarte).forEach(([id,courses])=>{
     const p=carteMap[String(id)]||{};
-    courses.forEach(c=>all.push({...c,id_carte:id,_uid:p._uid||'',carte_nom:p.nom||id,carte_dept:p._dept||'',_ts:_dateTs(c.date),_year:_dateYear(c.date)}));
+    courses.forEach(c=>all.push({...c,id_carte:id,id_ffco:p.id_ffco||id,carte_nom:p.nom||id,carte_dept:p._dept||'',_ts:_dateTs(c.date),_year:_dateYear(c.date)}));
   });
   return all;
 }
@@ -1456,7 +1439,7 @@ function renderCoursesTab(){
   const MAX=2000;
   document.getElementById('tbody-courses').innerHTML=data.slice(0,MAX).map(c=>{
     const lien=safeUrl(c.lien)?'<a href="'+safeUrl(c.lien)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent);font-size:10px;margin-left:4px">↗</a>':'';
-    return '<tr onclick="fermerModal();selectZoom('+jsArg(c._uid)+')" title="Voir sur la carte">'
+    return '<tr onclick="fermerModal();selectZoom('+jsArg(c.id_ffco)+')" title="Voir sur la carte">'
       +'<td style="font-family:var(--mono);white-space:nowrap">'+esc(_dateFmt(c.date))+'</td>'
       +'<td>'+esc(c.nom||'—')+lien+'</td>'
       +'<td><span class="pcourse-type '+typeClass(c.type)+'">'+esc(c.type||'—')+'</span></td>'
@@ -1603,7 +1586,7 @@ function filtrerCartesAdmin(q){
     const badge = nbC > 0
       ? '<span style="font-size:10px;font-family:var(--mono);background:rgba(34,211,160,.15);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:6px">'+nbC+' course'+(nbC>1?'s':'')+'</span>'
       : '';
-    return '<div data-id="'+esc(p._uid)+'" onclick="selectionnerCarteAdmin(this.getAttribute(\'data-id\'))" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+    return '<div data-id="'+esc(p.id_ffco)+'" onclick="selectionnerCarteAdmin(this.getAttribute(\'data-id\'))" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
       + '<div style="font-size:12px;font-weight:500">'+esc(p.nom)+badge+'</div>'
       + '<div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px">'
       + esc(p._dept) + ' · ' + esc(p.echelle) + ' · ' + esc(p.specialite) + ' · ' + esc(p.commune)
@@ -1612,13 +1595,13 @@ function filtrerCartesAdmin(q){
   }).join('');
 }
 
-function selectionnerCarteAdmin(uid){
-  const feat = cartes.find(f => f.properties._uid === uid);
+function selectionnerCarteAdmin(id_ffco){
+  const feat = cartes.find(f => f.properties.id_ffco == id_ffco);
   if(!feat) return;
   adminCarte = feat.properties;
   renderAdminForm();
   // Centrer la carte sur le polygone sélectionné
-  const layer = layerMap[uid];
+  const layer = layerMap[id_ffco];
   if(layer) map.panTo(layer.getBounds().getCenter());
 }
 
@@ -1876,7 +1859,9 @@ function toggleHeatmap() {
     btn.classList.remove('active');
     legend.classList.remove('visible');
     // Restaurer les styles normaux
-    eachCarteLayer(l => l.setStyle(activeL===l ? ss(l.feature) : sb(l.feature)));
+    if(geoLayer) geoLayer.eachLayer(l => {
+      if(l.feature) l.setStyle(sb(l.feature));
+    });
   }
 }
 
@@ -1899,9 +1884,16 @@ function appliquerHeatmap() {
   document.getElementById('heatmap-nb').textContent = avecCourses;
   document.getElementById('heatmap-sans').textContent = sansCourses;
 
-  // Le masquage des cartes filtrées est géré par filtrer() ; ici on ne fait que colorer
-  eachCarteLayer(l => {
+  // IDs des cartes filtrées (visibles sur la carte)
+  const visibles = new Set(filtrees.map(f=>f.properties.id_ffco));
+
+  geoLayer.eachLayer(l => {
+    if(!l.feature) return;
     const p = l.feature.properties;
+    // Masquer les cartes non filtrées
+    const el = l.getElement?.();
+    if(el && !visibles.has(p.id_ffco)){ el.style.display='none'; return; }
+    if(el) el.style.display='';
     const nb = (comptage[p.numero]||comptage[p.id_ffco]||0);
     const col = couleurHeatmap(nb, max);
     l.setStyle({
